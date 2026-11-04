@@ -370,8 +370,139 @@
     </div>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-bioactivity" data-chapter="bioactivity">
     <p class="chapter-no">Part 3</p>
+    <h2 class="chapter-title">Bioactivity</h2>
+    <p class="chapter-dek">What the measurements are and how far to trust them: the activity record in ChEMBL, potency by kind of assay, ligand and lipophilic efficiency, two kinase assays measured against each other, binding kinetics, receptor theory to play with, and drug pairs screened in combination.</p>
+  </div>
+
+  <section class="story wrap" id="record" data-lens="basic" data-nav="Measurement record">
+    <header class="head"><p class="label">The measurement record</p><h2 data-finding="record">The measurement record</h2><p class="dek" id="record-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="type-chart"></div>
+      <figcaption>Activity records in ChEMBL by their standard type, the 20 commonest, log scale; types with no values attached are highlighted. Source: ChEMBL activity search index.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="year-chart"></div>
+      <figcaption>Activity records by the year of the document that reports them. Source: ChEMBL activity search index.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="source-chart"></div>
+        <figcaption>Activity records by the source ChEMBL took them from, the 12 largest, log scale. Source: ChEMBL sources and activity search index.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="format-chart"></div>
+        <figcaption>Activity records by the BioAssay Ontology format of the assay: purified protein, cell, organism and so on. Source: ChEMBL activity search index.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="potency" data-lens="basic" data-nav="Potency">
+    <header class="head"><p class="label">How potent</p><h2 data-finding="potency">How potent</h2><p class="dek" id="potency-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="pchembl-chart"></div>
+      <figcaption>Share of each standard type’s pChEMBL values in each half-log bin: pChEMBL is the negative log of the molar IC50, Ki, Kd, EC50, AC50 or potency, so 6 is 1 µM and 9 is 1 nM. Source: ChEMBL activity search index.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="approved-potency-chart"></div>
+        <figcaption>Share of values in each half-log bin: every pChEMBL value in ChEMBL, against the affinities of approved drugs at their primary human targets in GtoPdb. Source: ChEMBL; GtoPdb interactions.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="measured-chart"></div>
+        <figcaption>The 15 molecules with the most pChEMBL values, log scale. Source: ChEMBL activity search index.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="efficiency" data-lens="basic" data-nav="Efficiency">
+    <header class="head"><p class="label">Ligand efficiency</p><h2 data-finding="efficiency">Ligand efficiency</h2><p class="dek" id="efficiency-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="le-chart"></div>
+        <figcaption>Affinity of approved drugs at their primary human targets against heavy atom count, the best value for each drug and target; the lines mark ligand efficiencies of 0.3 and 0.5 kcal/mol per heavy atom, after Hopkins et al. 2004. Source: GtoPdb interactions; ChEMBL properties.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="lle-chart"></div>
+        <figcaption>The same affinities against calculated logP; the lines mark lipophilic ligand efficiencies, affinity minus logP, of 3, 5 and 7, after Leeson and Springthorpe 2007. Source: GtoPdb interactions; ChEMBL properties.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="agreement" data-lens="basic" data-nav="Agreement">
+    <header class="head"><p class="label">Do two assays agree?</p><h2 data-finding="agreement">Do two assays agree?</h2><p class="dek" id="agreement-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="agree-chart"></div>
+        <figcaption>pKd of the same kinase inhibitor on the same human kinase measured two ways: KINOMEscan binding to recombinant kinase domains (Davis et al. 2011) and kinobeads competition in cell lysate (Klaeger et al. 2017), for pairs both studies measured; the line marks perfect agreement. Source: ChEMBL documents CHEMBL1908390 and CHEMBL3991601.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="bland-chart"></div>
+        <figcaption>Bland–Altman plot of the same pairs: the difference, KINOMEscan minus kinobeads, against the mean of the two, with the mean difference and the 95% limits of agreement. Source: computed from ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="kinetics" data-lens="basic" data-nav="Kinetics">
+    <header class="head"><p class="label">Binding kinetics</p><h2 data-finding="kinetics">Binding kinetics</h2><p class="dek" id="kinetics-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="kinetic-map"></div>
+      <figcaption>Association against dissociation rate constant for each compound on each target in the K4DD deposition, log scales; along each diagonal the affinity, koff over kon, is the same. Replicates are averaged geometrically. Source: ChEMBL document CHEMBL3885741.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="residence-chart"></div>
+      <figcaption>Residence time, one over koff, by target, log scale; boxes and whiskers as above. Source: computed from K4DD via ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="theory" data-lens="basic clinical" data-nav="Receptor theory">
+    <header class="head"><p class="label">Receptor theory, live</p><h2>How affinity, efficacy and time set the response</h2><p class="dek">Move the sliders. Occupancy follows the Hill–Langmuir equation; response follows the operational model of Black and Leff 1983, in which an agonist’s efficacy τ sets how few receptors it needs; a competitive antagonist shifts the curve by Schild’s dose ratio; and binding takes time set by kon and koff.</p></header>
+    <figure class="fig">
+      <div class="sliders" id="occupancy-controls">
+        <div class="slider"><label for="p-ka">Agonist affinity, pK<sub>A</sub></label><input id="p-ka" type="range" min="4" max="10" step="0.1" value="7"><output id="p-ka-out" for="p-ka">7.0</output></div>
+        <div class="slider"><label for="log-tau">Efficacy, log τ</label><input id="log-tau" type="range" min="-1" max="3" step="0.1" value="1"><output id="log-tau-out" for="log-tau">1.0</output></div>
+        <div class="slider"><label for="hill">Slope, n</label><input id="hill" type="range" min="0.5" max="3" step="0.1" value="1"><output id="hill-out" for="hill">1.0</output></div>
+        <div class="slider"><label for="p-kb">Antagonist affinity, pK<sub>B</sub></label><input id="p-kb" type="range" min="5" max="10" step="0.1" value="8"><output id="p-kb-out" for="p-kb">8.0</output></div>
+        <div class="slider"><label for="log-b">Antagonist, log molar</label><input id="log-b" type="range" min="-11" max="-5" step="0.1" value="-7"><output id="log-b-out" for="log-b">−7.0</output></div>
+      </div>
+      <div class="chart" id="occupancy-chart"></div>
+      <p class="explain" id="occupancy-out" aria-live="polite"></p>
+      <figcaption>Fraction of receptors occupied and fraction of the system’s maximal response against agonist concentration, alone and with the antagonist, computed in the page from the operational model: E = τⁿAⁿ / ((K<sub>A</sub> + A)ⁿ + τⁿAⁿ). Source: Black and Leff 1983; Schild 1949.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="sliders" id="binding-controls">
+        <div class="slider"><label for="log-kon">Association, log kon</label><input id="log-kon" type="range" min="3" max="8" step="0.1" value="6"><output id="log-kon-out" for="log-kon">6.0</output></div>
+        <div class="slider"><label for="log-koff">Dissociation, log koff</label><input id="log-koff" type="range" min="-5" max="0" step="0.1" value="-3"><output id="log-koff-out" for="log-koff">−3.0</output></div>
+        <div class="slider"><label for="log-l">Ligand, log molar</label><input id="log-l" type="range" min="-11" max="-5" step="0.1" value="-9"><output id="log-l-out" for="log-l">−9.0</output></div>
+        <div class="slider"><label for="incubation">Incubation, minutes</label><input id="incubation" type="range" min="5" max="240" step="5" value="60"><output id="incubation-out" for="incubation">60</output></div>
+      </div>
+      <div class="chart" id="binding-chart"></div>
+      <p class="explain" id="binding-out" aria-live="polite"></p>
+      <figcaption>Fraction of receptors bound while the ligand is present, then after it is washed out, computed in the page: binding approaches C/(C + K<sub>D</sub>) at the rate kon·C + koff and decays at koff. Source: Copeland et al. 2006.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="combinations" data-lens="basic clinical" data-nav="Combinations">
+    <header class="head"><p class="label">Drug pairs</p><h2 data-finding="combinations">Drug pairs</h2><p class="dek" id="combinations-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="combo-chart"></div>
+      <figcaption>Mean NCI-ALMANAC score of each pair of approved anticancer drugs across the NCI-60 cell lines: red where the pair inhibited growth more than the Bliss expectation from each drug alone, blue where it inhibited less; drugs are ordered by the similarity of their rows. Source: NCI-ALMANAC, Holbeck et al. 2017.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="combo-top-chart"></div>
+        <figcaption>The 20 pairs with the highest mean score, with the number of cell lines tested. Source: NCI-ALMANAC.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="combo-dist-chart"></div>
+        <figcaption>Drug pairs by mean score, in bins of 2.5 points. Source: NCI-ALMANAC.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 4</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>

@@ -394,7 +394,7 @@ export const rampLegend = (lo, hi, format, color = 'var(--ink)', steps = 5) => h
   }));
 
 export const heatmap = ({
-  mount, labels, values, order, lo, hi, aria, describe, legend, color = 'var(--data)', labelMin = 10,
+  mount, labels, values, order, lo, hi, aria, describe, legend, color = 'var(--data)', labelMin = 10, fill,
 }) => {
   const W = widthOf(mount);
   const n = order.length;
@@ -410,8 +410,9 @@ export const heatmap = ({
     }, labels[r])) : null,
     order.flatMap((r, i) => order.map((c, j) => {
       const k = flat.push([r, c]) - 1;
+      const f = fill ? fill(values[r][c]) : { color, opacity: heat(values[r][c], lo, hi) };
       return el('rect', {
-        class: 'cell', 'data-cell': `${r}:${c}`, 'data-k': k, 'data-rank': k, x: L + j * side, y: i * side, width: side + 0.25, height: side + 0.25, style: `fill:${color};fill-opacity:${heat(values[r][c], lo, hi)};--i:${i}`,
+        class: 'cell', 'data-cell': `${r}:${c}`, 'data-k': k, 'data-rank': k, x: L + j * side, y: i * side, width: side + 0.25, height: side + 0.25, style: `fill:${f.color};fill-opacity:${f.opacity};--i:${i}`,
       });
     })));
   hover(svg, (k) => describe(...flat[Number(k)]));
@@ -1014,7 +1015,7 @@ export const forest = ({
 };
 
 export const scatter = ({
-  mount, points, xDomain, yDomain, xLabel, yLabel, aria, describe, labels = [], xFormat = compact, yFormat = compact, height = 320,
+  mount, points, xDomain, yDomain, xLabel, yLabel, aria, describe, labels = [], xFormat = compact, yFormat = compact, height = 320, refs = [], legend = [], radius = 4.5,
 }) => {
   const W = widthOf(mount);
   const L = 46;
@@ -1046,8 +1047,15 @@ export const scatter = ({
       class: 'axis-lab', x: W - R, y: H - 4, 'text-anchor': 'end',
     }, xLabel) : null,
     yLabel ? el('text', { class: 'axis-lab', x: L, y: T - 6 }, yLabel) : null,
+    refs.map((r) => el('g', {},
+      el('line', {
+        class: `ref${r.soft ? ' soft' : ''}`, x1: x(r.x1), y1: y(r.y1), x2: x(r.x2), y2: y(r.y2),
+      }),
+      r.label ? el('text', {
+        class: 'ref-lab', x: x(r.x2) - 4, y: y(r.y2) - 5, 'text-anchor': 'end',
+      }, r.label) : null)),
     points.map((p, k) => el('circle', {
-      class: `pt${p.hi ? ' hi' : ''}`, 'data-point': p.key, 'data-k': k, 'data-rank': k, cx: x(p.x), cy: y(p.y), r: 4.5,
+      class: `pt${p.hi ? ' hi' : ''}`, 'data-point': p.key, 'data-k': k, 'data-rank': k, cx: x(p.x), cy: y(p.y), r: radius, style: p.color ? `fill:${p.color}` : null,
     })),
     points.filter((p) => named.has(p.key)).map((p) => {
       const right = x(p.x) > W * 0.7;
@@ -1056,7 +1064,70 @@ export const scatter = ({
       }, p.label);
     }));
   hover(svg, (k) => describe(points[Number(k)]));
-  return mountSvg(mount, svg);
+  return legend.length ? mountSvg(mount, svg, legendOf(legend)) : mountSvg(mount, svg);
+};
+
+export const curves = ({
+  mount, series, xDomain, yDomain = [0, 1], xTicks, xFormat = (v) => String(v), yFormat = (v) => `${Math.round(v * 100)}%`, xLabel, yLabel, marks = [], aria, describe, height = 260,
+}) => {
+  const W = widthOf(mount);
+  const L = 46;
+  const R = 14;
+  const T = 16;
+  const B = 34;
+  const H = height;
+  const x = scaleLinear(xDomain, [L, W - R]);
+  const y = scaleLinear(yDomain, [H - B, T]);
+  const yt = spanTicks(yDomain[0], yDomain[1]).filter((t) => t >= yDomain[0] - 1e-9 && t <= yDomain[1] + 1e-9);
+  const xt = (xTicks ?? spanTicks(xDomain[0], xDomain[1])).filter((t) => t >= xDomain[0] - 1e-9 && t <= xDomain[1] + 1e-9);
+  const spaced = xt.reduce((kept, t) => {
+    if (!kept.length || x(t) - x(kept.at(-1)) >= 34) kept.push(t);
+    return kept;
+  }, []);
+  const steps = series[0].points.length;
+  const cross = el('line', {
+    class: 'cross', y1: T, y2: H - B, x1: 0, x2: 0, visibility: 'hidden',
+  });
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    yt.map((t) => el('g', {},
+      el('line', {
+        class: t === yDomain[0] ? 'base' : 'grid', x1: L, x2: W - R, y1: y(t), y2: y(t),
+      }),
+      el('text', {
+        class: 'tick', x: L - 8, y: y(t) + 4, 'text-anchor': 'end',
+      }, yFormat(t)))),
+    spaced.map((t) => el('text', {
+      class: 'tick', x: x(t), y: H - B + 16, 'text-anchor': 'middle',
+    }, xFormat(t))),
+    xLabel ? el('text', {
+      class: 'axis-lab', x: W - R, y: H - 4, 'text-anchor': 'end',
+    }, xLabel) : null,
+    yLabel ? el('text', { class: 'axis-lab', x: L, y: T - 6 }, yLabel) : null,
+    marks.filter((m) => m.x >= xDomain[0] && m.x <= xDomain[1]).map((m) => el('g', {},
+      el('line', {
+        class: 'mark-line', x1: x(m.x), x2: x(m.x), y1: T, y2: H - B,
+      }),
+      el('text', {
+        class: 'ref-lab', x: x(m.x) + 4, y: T + 10,
+      }, m.label))),
+    series.map((s) => el('path', {
+      class: `line${s.alt ? ' alt' : ''}`, d: `M${s.points.map((p) => `${x(Math.max(xDomain[0], Math.min(xDomain[1], p.x))).toFixed(1)},${y(Math.max(yDomain[0], Math.min(yDomain[1], p.y))).toFixed(1)}`).join('L')}`, style: s.color ? `stroke:${s.color}` : null,
+    })),
+    cross,
+    el('rect', {
+      class: 'hit', 'data-k': 0, x: L, y: T, width: W - L - R, height: H - T - B,
+    }));
+  hover(svg, (k, event) => {
+    const box = svg.getBoundingClientRect();
+    const px = ((event.clientX ?? box.left + box.width / 2) - box.left) * (W / box.width);
+    const i = event.index ?? Math.max(0, Math.min(steps - 1, Math.round(((px - L) / (W - L - R)) * (steps - 1))));
+    const at = x(series[0].points[i].x);
+    cross.setAttribute('x1', at);
+    cross.setAttribute('x2', at);
+    cross.setAttribute('visibility', 'visible');
+    return describe(i);
+  }, { steps });
+  return mountSvg(mount, svg, legendOf(series.map((s) => ({ label: s.label, color: s.color ?? (s.alt ? 'var(--accent)' : 'var(--ink)') }))));
 };
 
 export const observeFigures = () => {

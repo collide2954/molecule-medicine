@@ -3,7 +3,7 @@ import {
   SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT,
 } from './facts.js';
 import {
-  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar,
+  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds,
 } from './lib.js';
 import { linearEdges, histogram, summary } from './stats.js';
 import { unpackMol } from './chem.js';
@@ -15,7 +15,13 @@ import {
   familyCounts, actionCounts, familyActions, topTargets, degreeBins, targetHierarchy, classCounts, ecCounts, networkGraph, networkPieces, gtopdbRows, affinityByType, kinomeGroups, kinomeOrder, softName, lastFullYear,
 } from './targets.js';
 import {
-  hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend,
+  medianBin, efficiencyPoints, agreementStats, kineticRows, comboMatrix, topPairs,
+} from './bioactivity.js';
+import {
+  occupancy, operational, operationalSummary, doseRatio, association, washout, curve,
+} from './theory.js';
+import {
+  hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend, curves, heatmap, html,
 } from './charts.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -853,6 +859,387 @@ const renderStructures = () => {
   attachData('#gpcr-years-chart', 'gpcr-structures-by-year', ['Year', ...keys], years.map((y) => [y, ...keys.map((k) => G.methods[k][G.years.indexOf(y)] ?? 0)]));
 };
 
+const A3 = snapshot.activities;
+const ASSAY_TYPES = {
+  B: 'binding', F: 'functional', A: 'ADMET', T: 'toxicity', P: 'physicochemical', U: 'unassigned',
+};
+const PHANTOM = new Set(['kon', 'k_off']);
+
+const renderRecord = () => {
+  const warned = A3.validity.reduce((n, v) => n + v.n, 0);
+  const whole = A3.formats.filter((f) => /cell-based|organism-based|tissue-based/.test(f.format)).reduce((n, f) => n + f.n, 0);
+  const protein = A3.formats.find((f) => f.format === 'single protein format')?.n ?? 0;
+  const assays = A3.assays.map((a) => `${pct(a.n / A3.total)} ${ASSAY_TYPES[a.type] ?? a.type}`).slice(0, 3).join(', ');
+  $('#record-dek').textContent = `By assay type, ${assays}. ${pct(whole / A3.total)} of records come from cells, tissues or whole organisms and ${pct(protein / A3.total)} from a single purified protein. ${exact(A3.duplicates)} are flagged as potential duplicates and ${exact(warned)} carry a data-validity warning. ${exact(A3.phantomKinetics)} kon and k_off rows, from BindingDB patent records, hold no value at all.`;
+  const types = A3.types.slice(0, 20);
+  dotplot({
+    mount: $('#type-chart'),
+    rows: types.map((t) => ({
+      key: t.type, label: t.type, value: t.n, hi: PHANTOM.has(t.type),
+    })),
+    labelShare: 0.26,
+    aria: 'ChEMBL activity records by standard type',
+    describe: (r) => tipLines(`${exact(r.value)} records`, r.label, pct(r.value / A3.total), PHANTOM.has(r.key) ? 'nearly all from BindingDB patent records, with no value' : null),
+  });
+  attachData('#type-chart', 'activity-types', ['Standard type', 'Records'], A3.types.map((t) => [t.type, t.n]));
+  const years = A3.years.filter(([y]) => y >= 1970);
+  const top = years.reduce((a, b) => (b[1] > a[1] ? b : a));
+  columns({
+    mount: $('#year-chart'),
+    rows: years,
+    key: (r) => r[0],
+    value: (r) => r[1],
+    highlight: (r) => r[0] === top[0],
+    annotations: [{ key: top[0], text: `${top[0]}: ${compact(top[1])}` }],
+    aria: 'ChEMBL activity records by document year',
+    describe: (r) => tipLines(`${exact(r[1])} records`, `documents from ${r[0]}`),
+  });
+  attachData('#year-chart', 'activities-by-year', ['Year', 'Records'], years.map(([y, n]) => [y, n]));
+  const sources = A3.sources.slice(0, 12);
+  dotplot({
+    mount: $('#source-chart'),
+    rows: sources.map((s) => ({ key: String(s.id), label: s.name, value: s.n })),
+    labelShare: 0.5,
+    labelMax: 300,
+    aria: 'ChEMBL activity records by source',
+    describe: (r) => tipLines(`${exact(r.value)} records`, r.label, pct(r.value / A3.total)),
+  });
+  attachData('#source-chart', 'activity-sources', ['Source ID', 'Source', 'Records'], A3.sources.map((s) => [s.id, s.name, s.n]));
+  hbars({
+    mount: $('#format-chart'),
+    rows: A3.formats.slice(0, 10).map((f) => ({ key: f.format, label: f.format.replace(/ format$/, ''), values: { n: f.n } })),
+    segments: [{ key: 'n', label: 'Records', color: 'var(--s4)' }],
+    labelShare: 0.34,
+    tickFormat: compact,
+    format: compact,
+    aria: 'ChEMBL activity records by assay format',
+    describe: (r) => tipLines(`${exact(r.values.n)} records`, r.label, pct(r.values.n / A3.total)),
+  });
+  attachData('#format-chart', 'assay-formats', ['Format', 'Records'], A3.formats.map((f) => [f.format, f.n]));
+};
+
+const POTENCY_COLORS = ['var(--s2)', 'var(--s1)', 'var(--s4)', 'var(--s3)', 'var(--s5)', 'var(--ink-2)'];
+const BINS = Array.from({ length: 19 }, (_, i) => 3 + i / 2);
+
+const renderPotency = () => {
+  const median = (type) => medianBin(A3.byType.find((t) => t.type === type)?.bins ?? []);
+  const [m1, m2, m3] = A3.molecules;
+  $('#potency-dek').textContent = `Binding constants sit higher than screening potencies: Ki values centre on pChEMBL ${median('Ki')} to ${median('Ki') + 0.5} and IC50s on ${median('IC50')} to ${median('IC50') + 0.5}, while the “potency” values of PubChem’s quantitative screens centre on ${median('Potency')} to ${median('Potency') + 0.5}. The most-measured molecules are ${drugName(m1.name)}, ${drugName(m2.name)} and ${drugName(m3.name)}, with ${exact(m1.n)}, ${exact(m2.n)} and ${exact(m3.n)} pChEMBL values.`;
+  const series = A3.byType.map((t, i) => {
+    const counts = new Map(t.bins);
+    const total = t.bins.reduce((n, [, c]) => n + c, 0) || 1;
+    return { label: `${t.type}, ${compact(t.n)}`, color: POTENCY_COLORS[i % POTENCY_COLORS.length], points: BINS.map((x) => ({ x, y: (counts.get(x) ?? 0) / total })) };
+  });
+  const peak = Math.max(...series.flatMap((s) => s.points.map((p) => p.y)));
+  curves({
+    mount: $('#pchembl-chart'),
+    series,
+    xDomain: [3, 12],
+    yDomain: [0, Math.ceil(peak * 10) / 10],
+    xTicks: Array.from({ length: 10 }, (_, i) => 3 + i),
+    yFormat: (v) => `${Math.round(v * 100)}%`,
+    xLabel: 'pChEMBL',
+    aria: 'Distribution of pChEMBL values by standard type',
+    describe: (i) => tipLines(`pChEMBL ${BINS[i]} to ${BINS[i] + 0.5}`, `${nanomolar(BINS[i] + 0.5)} to ${nanomolar(BINS[i])}`, ...series.map((s) => `${s.label.split(',')[0]} ${pct(s.points[i].y)}`)),
+  });
+  attachData('#pchembl-chart', 'pchembl-by-type', ['pChEMBL from', ...A3.byType.map((t) => t.type)], BINS.map((x) => [x, ...A3.byType.map((t) => new Map(t.bins).get(x) ?? 0)]));
+  const all = new Map(A3.pchembl);
+  const approved = new Map();
+  for (const a of snapshot.gtopdb.affinities) {
+    const bin = Math.floor(a.value * 2) / 2;
+    approved.set(bin, (approved.get(bin) ?? 0) + 1);
+  }
+  const share = (m) => {
+    const total = [...m.values()].reduce((n, c) => n + c, 0) || 1;
+    return BINS.map((x) => (m.get(x) ?? 0) / total);
+  };
+  const two = [{ key: 'all', label: 'every pChEMBL value', color: 'var(--data-2)', values: share(all) }, { key: 'approved', label: 'approved drugs at their primary targets', color: 'var(--s1)', values: share(approved) }];
+  histo({
+    mount: $('#approved-potency-chart'),
+    bins: BINS,
+    series: two,
+    tickLabel: (b) => (Number.isInteger(b) ? String(b) : null),
+    tickEvery: 1,
+    yFormat: (v) => `${Math.round(v * 100)}%`,
+    aria: 'pChEMBL values against approved-drug affinities',
+    describe: (i) => tipLines(`pChEMBL ${BINS[i]} to ${BINS[i] + 0.5}`, `every value ${pct(two[0].values[i])}`, `approved drugs ${pct(two[1].values[i])}`),
+  });
+  attachData('#approved-potency-chart', 'approved-potency', ['pChEMBL from', 'Every pChEMBL value', 'Approved drugs'], BINS.map((x) => [x, all.get(x) ?? 0, approved.get(x) ?? 0]));
+  dotplot({
+    mount: $('#measured-chart'),
+    rows: A3.molecules.map((m) => ({ key: m.name, label: drugName(m.name), value: m.n })),
+    labelShare: 0.4,
+    aria: 'The molecules with the most pChEMBL values',
+    describe: (r) => tipLines(`${exact(r.value)} pChEMBL values`, r.label),
+  });
+  attachData('#measured-chart', 'most-measured-molecules', ['Molecule', 'pChEMBL values'], A3.molecules.map((m) => [drugName(m.name), m.n]));
+};
+
+const renderEfficiency = () => {
+  const points = efficiencyPoints(snapshot);
+  const heavy = summary(points.map((p) => p.heavy)).median;
+  const lles = points.filter((p) => p.lle !== null);
+  const lle = summary(lles.map((p) => p.lle)).median;
+  $('#efficiency-dek').textContent = `${exact(points.length)} approved drug–target affinities in GtoPdb match a ChEMBL structure. The median drug has ${exact(heavy)} heavy atoms and a lipophilic ligand efficiency of ${decimal(lle, 1)}; ${pct(lles.filter((p) => p.lle >= 5).length / lles.length)} reach an LLE of 5, which Leeson and Springthorpe put forward as a goal for leads.`;
+  const xd = [0, Math.max(...points.map((p) => p.heavy)) + 5];
+  const yd = [3, 12];
+  const refs = [0.3, 0.5].map((le) => ({ ...clipLine(le / 1.37, 0, xd, yd), label: `LE ${le}` }));
+  scatter({
+    mount: $('#le-chart'),
+    points: points.map((p, i) => ({ key: `${i}`, x: p.heavy, y: p.p })),
+    xDomain: xd,
+    yDomain: yd,
+    refs,
+    radius: 3,
+    xLabel: 'heavy atoms',
+    yLabel: 'affinity, p units',
+    aria: 'Affinity against heavy atoms for approved drugs',
+    describe: (pt) => {
+      const p = points[Number(pt.key)];
+      return tipLines(`${p.units} ${p.p}, LE ${decimal(p.le, 2)}`, `${p.ligand} on ${p.target}`, `${p.heavy} heavy atoms`);
+    },
+  });
+  attachData('#le-chart', 'ligand-efficiency', ['Drug', 'Target', 'Units', 'Affinity', 'Heavy atoms', 'ALogP', 'LE', 'LLE'], points.map((p) => [p.ligand, p.target, p.units, p.p, p.heavy, p.alogp, p.le, p.lle]));
+  const ad = [Math.floor(Math.min(...lles.map((p) => p.alogp))) - 1, Math.ceil(Math.max(...lles.map((p) => p.alogp))) + 1];
+  scatter({
+    mount: $('#lle-chart'),
+    points: lles.map((p) => ({ key: `${points.indexOf(p)}`, x: p.alogp, y: p.p })),
+    xDomain: ad,
+    yDomain: yd,
+    refs: [3, 5, 7].map((v) => clipLine(1, v, ad, yd)).filter(Boolean).map((r, i) => ({ ...r, label: `LLE ${[3, 5, 7][i]}` })),
+    radius: 3,
+    xLabel: 'ALogP',
+    yLabel: 'affinity, p units',
+    aria: 'Affinity against calculated logP for approved drugs',
+    describe: (pt) => {
+      const p = points[Number(pt.key)];
+      return tipLines(`${p.units} ${p.p}, LLE ${decimal(p.lle, 1)}`, `${p.ligand} on ${p.target}`, `ALogP ${decimal(p.alogp, 1)}`);
+    },
+  });
+  attachData('#lle-chart', 'lipophilic-efficiency', ['Drug', 'Target', 'Affinity', 'ALogP', 'LLE'], lles.map((p) => [p.ligand, p.target, p.p, p.alogp, p.lle]));
+};
+
+const renderAgreement = () => {
+  const s = agreementStats(snapshot, 'klaeger');
+  const k = agreementStats(snapshot, 'karaman');
+  const pairs = snapshot.agreement.klaeger.pairs;
+  $('#agreement-dek').textContent = `KINOMEscan binds recombinant kinase domains; kinobeads compete for native kinases in cell lysate. Across ${exact(s.n)} shared pairs, KINOMEscan reads ${decimal(10 ** s.bias, 1)} times tighter on average, the limits of agreement run from ${minus(s.lo, 2)} to ${minus(s.hi, 2)} log units and Spearman’s ρ is ${decimal(s.spearman, 2)}. A caution on counting: Davis 2011 repeats ${pct(k.identical / k.n)} of the Kd values it shares with Karaman 2008 to two decimals, so ChEMBL holds those ${exact(k.identical)} measurements twice.`;
+  const d = [3, 11];
+  scatter({
+    mount: $('#agree-chart'),
+    points: pairs.map(([a, b], i) => ({ key: `${i}`, x: a, y: b })),
+    xDomain: d,
+    yDomain: d,
+    refs: [{ ...clipLine(1, 0, d, d), label: 'agreement' }],
+    radius: 2.5,
+    xLabel: 'KINOMEscan pKd',
+    yLabel: 'kinobeads pKd',
+    aria: 'Kinase Kd values from KINOMEscan against kinobeads',
+    describe: (pt) => tipLines(`KINOMEscan ${decimal(pt.x, 2)}, kinobeads ${decimal(pt.y, 2)}`, `difference ${decimal(pt.x - pt.y, 2)} log units`),
+  });
+  attachData('#agree-chart', 'kinobeads-kinomescan', ['KINOMEscan pKd', 'Kinobeads pKd'], pairs.map(([a, b]) => [a, b]));
+  const pts = s.points;
+  const xd = [Math.floor(Math.min(...pts.map((p) => p.mean))), Math.ceil(Math.max(...pts.map((p) => p.mean)))];
+  const yd = [Math.floor(Math.min(...pts.map((p) => p.diff))), Math.ceil(Math.max(...pts.map((p) => p.diff)))];
+  scatter({
+    mount: $('#bland-chart'),
+    points: pts.map((p, i) => ({ key: `${i}`, x: p.mean, y: p.diff })),
+    xDomain: xd,
+    yDomain: yd,
+    refs: [[s.bias, `bias ${minus(s.bias, 2)}`], [s.lo, `−1.96 SD ${minus(s.lo, 2)}`], [s.hi, `+1.96 SD ${minus(s.hi, 2)}`]].map(([v, label], i) => ({ ...clipLine(0, v, xd, yd), label, soft: i > 0 })),
+    radius: 2.5,
+    xLabel: 'mean pKd',
+    yLabel: 'KINOMEscan minus kinobeads',
+    aria: 'Bland–Altman plot of KINOMEscan and kinobeads Kd values',
+    describe: (pt) => tipLines(`difference ${decimal(pt.y, 2)} log units`, `mean pKd ${decimal(pt.x, 2)}`),
+  });
+  attachData('#bland-chart', 'bland-altman', ['Mean pKd', 'Difference'], pts.map((p) => [Number(p.mean.toFixed(3)), Number(p.diff.toFixed(3))]));
+};
+
+const minus = (v, places = 1) => (v < 0 ? `−${Math.abs(v).toFixed(places)}` : v.toFixed(places));
+
+const K4DD_SHORT = {
+  'Adenosine receptor A1': 'A1',
+  'Adenosine receptor A2a': 'A2A',
+  'Heat shock protein HSP 90-alpha': 'HSP90α',
+  'Coagulation factor X': 'FXa',
+  'Aurora kinase A': 'AurA',
+  'Insulin-like growth factor 1 receptor': 'IGF1R',
+  'Gonadotropin-releasing hormone receptor': 'GnRHR',
+  'Substance-P receptor': 'NK1',
+};
+
+const renderKinetics = () => {
+  const rows = kineticRows(snapshot);
+  const targets = [...new Set(rows.map((r) => r.targetName))];
+  const color = new Map(targets.map((t, i) => [t, CAT[i % CAT.length]]));
+  const longest = rows.reduce((a, b) => (b.residence > a.residence ? b : a));
+  const tight = rows.filter((r) => r.pkd >= 8 && r.pkd < 9);
+  const spread = tight.length > 1 ? Math.max(...tight.map((r) => r.residence)) / Math.min(...tight.map((r) => r.residence)) : 1;
+  $('#kinetics-dek').textContent = `Residence time, one over koff, runs from ${seconds(Math.min(...rows.map((r) => r.residence)))} to ${seconds(longest.residence)}; the longest-lived complex is ${longest.name ? drugName(longest.name) : longest.molecule} on ${softName(longest.targetName)}. Affinity does not fix it: among the ${exact(tight.length)} pairs with a pKD between 8 and 9, residence times differ ${exact(Math.round(spread))}-fold.`;
+  const xd = [Math.floor(Math.min(...rows.map((r) => r.logKon))), Math.ceil(Math.max(...rows.map((r) => r.logKon)))];
+  const yd = [Math.floor(Math.min(...rows.map((r) => r.logKoff))), Math.ceil(Math.max(...rows.map((r) => r.logKoff)))];
+  scatter({
+    mount: $('#kinetic-map'),
+    points: rows.map((r, i) => ({
+      key: `${i}`, x: r.logKon, y: r.logKoff, color: color.get(r.targetName),
+    })),
+    xDomain: xd,
+    yDomain: yd,
+    refs: [6, 7, 8, 9, 10, 11].map((p) => [p, clipLine(1, -p, xd, yd)]).filter(([, r]) => r).map(([p, r]) => ({ ...r, label: `pKD ${p}`, soft: true })),
+    legend: targets.map((t) => ({ label: t, color: color.get(t) })),
+    xFormat: (v) => pow10(v),
+    yFormat: (v) => pow10(v),
+    xLabel: 'kon, per molar per second',
+    yLabel: 'koff, per second',
+    height: 360,
+    aria: 'Kinetic map of association and dissociation rate constants',
+    describe: (pt) => {
+      const r = rows[Number(pt.key)];
+      return tipLines(`pKD ${decimal(r.pkd, 1)}, residence ${seconds(r.residence)}`, `${r.name ? drugName(r.name) : r.molecule} on ${r.targetName}`, `kon ${r.kon.toExponential(2)} M⁻¹s⁻¹, koff ${r.koff.toExponential(2)} s⁻¹`, { href: chemblUrl(r.molecule), text: `${r.molecule} in ChEMBL` });
+    },
+  });
+  attachData('#kinetic-map', 'k4dd-kinetics', ['Molecule', 'Name', 'Target', 'kon per M per s', 'koff per s', 'pKD', 'Residence s'], rows.map((r) => [r.molecule, r.name ?? '', r.targetName, r.kon, r.koff, Number(r.pkd.toFixed(2)), Number(r.residence.toPrecision(4))]));
+  const byTarget = targets.map((t) => {
+    const v = rows.filter((r) => r.targetName === t).map((r) => Math.log10(r.residence)).sort((a, b) => a - b);
+    const sm = summary(v);
+    return {
+      key: t, label: K4DD_SHORT[t] ?? t.slice(0, 12), n: v.length, lo: v[Math.floor(v.length * 0.05)], q1: sm.q1, median: sm.median, q3: sm.q3, hi: v[Math.min(v.length - 1, Math.floor(v.length * 0.95))],
+    };
+  }).filter((r) => r.n >= 3);
+  boxes({
+    mount: $('#residence-chart'),
+    rows: byTarget,
+    attr: 'target',
+    yFormat: (v) => seconds(10 ** v),
+    aria: 'Residence time by target',
+    describe: (r) => tipLines(`median ${seconds(10 ** r.median)}`, r.key, `middle half ${seconds(10 ** r.q1)} to ${seconds(10 ** r.q3)}`, plural(r.n, 'compound')),
+  });
+  attachData('#residence-chart', 'residence-by-target', ['Target', 'Pairs', 'Median residence s'], byTarget.map((r) => [r.key, r.n, Number((10 ** r.median).toPrecision(4))]));
+};
+
+const sliderValue = (id) => Number($(`#${id}`).value);
+const showValue = (id, digits = 1) => {
+  const v = sliderValue(id);
+  $(`#${id}-out`).textContent = v < 0 ? `−${Math.abs(v).toFixed(digits)}` : v.toFixed(digits);
+};
+
+const drawOccupancy = () => {
+  for (const id of ['p-ka', 'log-tau', 'hill', 'p-kb', 'log-b']) showValue(id);
+  const ka = 10 ** -sliderValue('p-ka');
+  const tau = 10 ** sliderValue('log-tau');
+  const n = sliderValue('hill');
+  const kb = 10 ** -sliderValue('p-kb');
+  const b = 10 ** sliderValue('log-b');
+  const dr = doseRatio(b, kb);
+  const s = operationalSummary(ka, tau, n);
+  const occ = curve((c) => occupancy(c, ka), -12, -2, 101);
+  const resp = curve((c) => operational(c, ka, tau, n), -12, -2, 101);
+  const shifted = curve((c) => operational(c, ka * dr, tau, n), -12, -2, 101);
+  curves({
+    mount: $('#occupancy-chart'),
+    series: [{ label: 'receptors occupied', color: 'var(--data-2)', points: occ }, { label: 'response', color: 'var(--s2)', points: resp }, { label: 'response with antagonist', alt: true, points: shifted }],
+    xDomain: [-12, -2],
+    xTicks: Array.from({ length: 11 }, (_, i) => -12 + i),
+    xFormat: (v) => pow10(v),
+    xLabel: 'agonist, molar',
+    marks: [{ x: Math.log10(s.ec50), label: 'EC50' }, { x: Math.log10(ka), label: 'KA' }],
+    aria: 'Receptor occupancy and response against agonist concentration',
+    describe: (i) => tipLines(`agonist ${molar(10 ** occ[i].x)}`, `occupied ${pct(occ[i].y)}`, `response ${pct(resp[i].y)}`, `with antagonist ${pct(shifted[i].y)}`),
+  });
+  attachData('#occupancy-chart', 'operational-model', ['Log agonist', 'Occupied', 'Response', 'Response with antagonist'], occ.map((p, i) => [p.x, Number(p.y.toFixed(4)), Number(resp[i].y.toFixed(4)), Number(shifted[i].y.toFixed(4))]));
+  $('#occupancy-out').textContent = `EC50 ${molar(s.ec50)}, Emax ${pct(s.emax)} of the system maximum; ${pct(s.occupancyAtEc50)} of receptors are occupied at the EC50, so ${s.occupancyAtEc50 < 0.5 ? 'the tissue has a receptor reserve' : 'there is no receptor reserve'}. With the antagonist at ${molar(b)}, the dose ratio is ${decimal(dr, 1)}, a shift of ${decimal(Math.log10(dr), 2)} log units.`;
+};
+
+const drawBinding = () => {
+  for (const id of ['log-kon', 'log-koff', 'log-l']) showValue(id);
+  showValue('incubation', 0);
+  const kon = 10 ** sliderValue('log-kon');
+  const koff = 10 ** sliderValue('log-koff');
+  const c = 10 ** sliderValue('log-l');
+  const inc = sliderValue('incubation');
+  const points = Array.from({ length: 121 }, (_, i) => {
+    const t = (2 * inc * i) / 120;
+    const y = t <= inc ? association(t * 60, c, kon, koff) : washout((t - inc) * 60, association(inc * 60, c, kon, koff), koff);
+    return { x: Number(t.toFixed(3)), y };
+  });
+  const atEnd = association(inc * 60, c, kon, koff);
+  const after = washout(inc * 60, atEnd, koff);
+  curves({
+    mount: $('#binding-chart'),
+    series: [{ label: 'receptors bound', color: 'var(--s2)', points }],
+    xDomain: [0, 2 * inc],
+    xLabel: 'minutes',
+    marks: [{ x: inc, label: 'washout' }],
+    aria: 'Receptor binding over time with washout',
+    describe: (i) => tipLines(`${pct(points[i].y)} bound`, `${decimal(points[i].x, 1)} min`, points[i].x <= inc ? 'ligand present' : 'after washout'),
+  });
+  attachData('#binding-chart', 'binding-time-course', ['Minutes', 'Bound'], points.map((p) => [p.x, Number(p.y.toFixed(4))]));
+  $('#binding-out').textContent = `KD ${molar(koff / kon)}; residence time ${seconds(1 / koff)}, half-life ${seconds(Math.LN2 / koff)}. ${pct(atEnd)} of receptors are bound after ${inc} min, against ${pct(c / (c + koff / kon))} at equilibrium, and ${pct(after)} are still bound ${inc} min after washout.`;
+};
+
+const renderTheory = () => {
+  drawOccupancy();
+  drawBinding();
+};
+
+const initTheory = () => {
+  $('#occupancy-controls').addEventListener('input', drawOccupancy);
+  $('#binding-controls').addEventListener('input', drawBinding);
+};
+
+const renderCombinations = () => {
+  const M = snapshot.almanac;
+  const m = comboMatrix(snapshot);
+  const scores = M.pairs.map((p) => p[2]).sort((a, b) => a - b);
+  const sm = summary(scores);
+  const worst = topPairs(snapshot, 1, -1)[0];
+  const traced = worst.a === 'ifosfamide' && worst.b === 'oxaliplatin';
+  $('#combinations-dek').textContent = `Each score is NCI’s: a combination well’s growth against the Bliss expectation from single-drug wells on the same plate, averaged over up to ${exact(M.cells)} cell lines. The middle half of pairs score between ${minus(sm.q1)} and ${minus(sm.q3)} points, close to additive. Scores far below zero can come from one plate: ${worst.a} with ${worst.b} scores ${minus(worst.score)}${traced ? ', and on the MCF7 plate that paired them, ifosfamide’s single-drug wells grew 44 to 82% of control though the prodrug, which needs liver enzymes to act, barely slows MCF7 cells on other plates' : ''}.`;
+  const scale = 20;
+  heatmap({
+    mount: $('#combo-chart'),
+    labels: m.names,
+    values: m.values,
+    order: m.order,
+    labelMin: 9,
+    fill: (v) => (v === null ? { color: 'var(--rule)', opacity: 0.15 } : { color: v >= 0 ? 'var(--s1)' : 'var(--s2)', opacity: heatShade(Math.abs(v), scale) }),
+    legend: html('ul', { class: 'legend ramp' }, [-20, -10, 0, 10, 20].map((v) => html('li', {}, html('i', { style: `background:${v >= 0 ? 'var(--s1)' : 'var(--s2)'};opacity:${heatShade(Math.abs(v), scale)}` }), v > 0 ? `+${v}` : `${v < 0 ? '−' : ''}${Math.abs(v)}`))),
+    aria: 'NCI-ALMANAC mean scores for every drug pair',
+    describe: (r, c) => (m.values[r][c] === null ? tipLines(m.names[r], 'the same drug') : tipLines(`${m.values[r][c] > 0 ? '+' : ''}${decimal(m.values[r][c], 1)} points`, `${m.names[r]} with ${m.names[c]}`, `${M.pairs.find((p) => (p[0] === Math.min(r, c) && p[1] === Math.max(r, c)))?.[3] ?? 0} cell lines`)),
+  });
+  attachData('#combo-chart', 'almanac-pairs', ['Drug', 'Drug', 'Mean score', 'Cell lines'], M.pairs.map(([i, j, sc, cells]) => [m.names[i], m.names[j], sc, cells]));
+  const top = topPairs(snapshot, 20);
+  dotplot({
+    mount: $('#combo-top-chart'),
+    rows: top.map((p) => ({ key: `${p.a}|${p.b}`, label: `${p.a} + ${p.b}`, value: p.score })),
+    scale: 'linear',
+    labelShare: 0.55,
+    labelMax: 330,
+    format: (v) => decimal(v, 1),
+    aria: 'The drug pairs with the highest NCI-ALMANAC scores',
+    describe: (r) => {
+      const p = top.find((x) => `${x.a}|${x.b}` === r.key);
+      return tipLines(`+${decimal(p.score, 1)} points`, r.label, plural(p.cells, 'cell line'));
+    },
+  });
+  attachData('#combo-top-chart', 'almanac-top-pairs', ['Pair', 'Mean score', 'Cell lines'], top.map((p) => [`${p.a} + ${p.b}`, p.score, p.cells]));
+  const edges = Array.from({ length: 25 }, (_, i) => -30 + i * 2.5);
+  const counts = edges.slice(0, -1).map((lo, i) => scores.filter((v) => v >= lo && (i === edges.length - 2 ? v <= edges.at(-1) : v < edges[i + 1])).length);
+  histo({
+    mount: $('#combo-dist-chart'),
+    bins: edges.slice(0, -1),
+    series: [{ key: 'pairs', label: 'Drug pairs', color: 'var(--s4)', values: counts }],
+    tickLabel: (b) => (b % 10 === 0 ? (b > 0 ? `+${b}` : String(b)) : null),
+    tickEvery: 1,
+    aria: 'Drug pairs by mean NCI-ALMANAC score',
+    describe: (i) => tipLines(plural(counts[i], 'pair'), `score ${edges[i]} to ${edges[i + 1]}`),
+  });
+  attachData('#combo-dist-chart', 'almanac-score-distribution', ['Score from', 'Score to', 'Pairs'], counts.map((n, i) => [edges[i], edges[i + 1], n]));
+};
+
+const heatShade = (v, top) => Number(Math.min(1, 0.08 + 0.92 * Math.min(1, v / top)).toFixed(3));
+
 const decode = () => {
   const value = $('#decoder-input').value;
   if (!value.trim()) {
@@ -903,6 +1290,10 @@ const DATA_SOURCES = [
   ['ClinVar gene-specific summary', FILES.clinvarGenes],
   ['HGNC protein-coding genes', FILES.hgncCoding],
   ['Minikel et al. 2024 display tables', GENETIC_SUPPORT.data],
+  ['ChEMBL activity search index, aggregations and document records', FILES.chemblSearch],
+  ['ChEMBL data sources', FILES.chemblSources],
+  ['NCI-ALMANAC combination growth data', FILES.almanac],
+  ['NCI-ALMANAC compound names', FILES.almanacNames],
 ];
 
 const renderSources = () => {
@@ -919,7 +1310,7 @@ const renderSources = () => {
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
     `. Cite as: Basic & Clinical Pharmacology in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
-    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar and HGNC data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
+    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC and NCI data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
 };
 
@@ -983,6 +1374,13 @@ const drawCharts = () => {
   renderGenetics();
   renderKinome();
   renderStructures();
+  renderRecord();
+  renderPotency();
+  renderEfficiency();
+  renderAgreement();
+  renderKinetics();
+  renderTheory();
+  renderCombinations();
   applySearch();
 };
 
@@ -1054,6 +1452,7 @@ const init = () => {
   renderLede();
   renderDecoder();
   renderSources();
+  initTheory();
   drawCharts();
   applyLens(readLens(location.search), false);
   observeFigures();

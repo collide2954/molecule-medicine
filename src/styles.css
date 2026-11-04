@@ -958,6 +958,65 @@ h2,
   stroke-dasharray: 4 3;
 }
 
+.chart .ref.soft {
+  stroke: var(--muted);
+  stroke-dasharray: 2 3;
+}
+
+.chart .ref-lab {
+  fill: var(--ink-2);
+  font-size: 10.5px;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.chart .mark-line {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.sliders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px 18px;
+  margin: 0 0 12px;
+}
+
+.sliders .slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 10px;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+.sliders label {
+  grid-column: 1 / -1;
+}
+
+.sliders input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.sliders output {
+  min-width: 3.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.explain {
+  margin: 10px 0 0;
+  font-size: 0.92rem;
+  color: var(--ink-2);
+}
+
 .chart .group-head {
   fill: var(--ink);
   font-size: 12px;
