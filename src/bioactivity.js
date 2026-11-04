@@ -69,7 +69,7 @@ export const kineticRows = (snap) => snap.kinetics.pairs.map((p) => ({
   ...p, pkd: tidy(-Math.log10(p.koff / p.kon)), residence: tidy(1 / p.koff), logKon: tidy(Math.log10(p.kon)), logKoff: tidy(Math.log10(p.koff)),
 }));
 
-const SALTS = new Set(['hydrochloride', 'dihydrochloride', 'mesylate', 'citrate', 'tosylate', 'sulfate', 'tartrate', 'acetate', 'maleate', 'fumarate', 'malate', 'phosphate', 'sodium', 'potassium', 'dimeglumine', 'hydrobromide', 'besylate', 'succinate', 'lactate', 'hydrate', 'bitartrate']);
+const SALTS = new Set(['hydrochloride', 'dihydrochloride', 'mesylate', 'citrate', 'tosylate', 'ditosylate', 'sulfate', 'tartrate', 'acetate', 'maleate', 'fumarate', 'malate', 'phosphate', 'sodium', 'potassium', 'dimeglumine', 'hydrobromide', 'besylate', 'succinate', 'lactate', 'hydrate', 'bitartrate']);
 
 export const drugBase = (name) => lower(name).split(/\s+/).filter((w) => !SALTS.has(w)).join(' ');
 
