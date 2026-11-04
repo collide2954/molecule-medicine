@@ -42,6 +42,6 @@ test('cipaSorted orders CiPA drugs from high risk to low, then by hERG margin', 
 test('pkFindings state the pharmacokinetics part as numbers', () => {
   const f = pkFindings(snap);
   assert.equal(f.pk, 'Approved drugs in ChEMBL have a median human half-life of 4 h, across 3 drugs, and oral bioavailability of 60%, across 3');
-  assert.equal(f.ddi, 'FDA lists 3 drugs and foods with clinical CYP or transporter interactions, among them 1 strong CYP3A inhibitor and 1 sensitive CYP3A substrate');
+  assert.equal(f.ddi, 'FDA names 3 drugs and foods in clinical CYP or transporter interactions; 1 is a strong CYP3A inhibitor, 1 a sensitive CYP3A substrate');
   assert.equal(f.cipa, 'Of CiPA’s 4 training drugs, verapamil blocks hERG at 3.56 times its free Cmax yet is low risk; sotalol is high risk at 7.53 times');
 });
