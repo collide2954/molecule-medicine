@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { retry } from '../src/lib.js';
 import {
-  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS,
+  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
 } from '../src/queries.js';
 import {
   cacheName, downloadTo, unzip, bufferLines,
@@ -15,6 +15,7 @@ import {
   activitySummary, kineticPairs, agreementPairs,
 } from './bioactivity.mjs';
 import { almanacNames, almanacScores } from './almanac.mjs';
+import { ddiRows, cipaRows, perDrugMedians } from './adme.mjs';
 import { runSections, toModule } from './sections.mjs';
 import {
   chemblStatus, approvedDrugs, atcNames, pages, ringSystemTable, mechanismRecords, targetRecord, classTree, targetClass, moleculeLabel,
@@ -226,8 +227,19 @@ const structures = async () => {
   return { pdb: { total: rcsb.total_count, ...rcsbByYear(rcsb) }, gpcrdb: gpcrdbSummary(await json(FILES.gpcrdb)) };
 };
 
+const pk = async () => {
+  const ids = (await drugs()).map((d) => d.id);
+  const out = {};
+  for (const parameter of PK_PARAMETERS) out[parameter.key] = perDrugMedians(await esSearch(pkQuery(parameter, ids)));
+  return out;
+};
+
+const ddi = async () => ({ rows: ddiRows(await text(FILES.fdaInteractions)) });
+
+const cipa = async () => ({ commit: '539ff80d6616895de5d943e7bfb77b346d195db4', rows: cipaRows(await text(FILES.cipaIc50), await text(FILES.cipaDrugs)) });
+
 const SECTIONS = {
-  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac,
+  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa,
 };
 
 const now = new Date();
