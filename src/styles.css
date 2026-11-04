@@ -841,6 +841,139 @@ h2,
   font-size: 10.5px;
 }
 
+.chart .ice-lab,
+.chart .ice-sub {
+  fill: #fff;
+  pointer-events: none;
+}
+
+.chart .ice-lab {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart .ice-sub {
+  font-size: 10.5px;
+  opacity: 0.9;
+}
+
+.chart .ice-lab.dark,
+.chart .ice-sub.dark {
+  fill: var(--ink);
+}
+
+.chart [data-class]:hover .ice,
+.chart [data-class].sel .ice {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.chart .col-lab {
+  fill: var(--ink-2);
+  font-size: 11.5px;
+}
+
+.chart .cell-n {
+  fill: var(--ink);
+  font-size: 10.5px;
+  pointer-events: none;
+}
+
+.chart .cell-n.on {
+  fill: #fff;
+}
+
+.chart .kin-bg {
+  fill: var(--paper);
+  stroke: var(--hair);
+  stroke-width: 1;
+}
+
+.chart .kin-lab {
+  font-size: 9.5px;
+}
+
+.chart .kin-lab.hi {
+  fill: var(--ink);
+  font-weight: 700;
+}
+
+.chart .kin-bar {
+  fill: var(--accent);
+}
+
+.chart .kin-cross {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.chart .group-lab {
+  fill: var(--ink-2);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.chart .group-line {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.chart .links {
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 0.5;
+  stroke-opacity: 0.3;
+}
+
+.chart .node {
+  fill-opacity: 0.9;
+  stroke: var(--paper);
+  stroke-width: 0.5;
+}
+
+.chart .node.drug {
+  fill-opacity: 0.6;
+  stroke: none;
+}
+
+.chart .net-ring {
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.chart .net-hi {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.2;
+}
+
+.chart .ci {
+  stroke: var(--ink-2);
+  stroke-width: 1.5;
+}
+
+.chart .ref {
+  stroke: var(--accent);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+
+.chart .group-head {
+  fill: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart .pt-lab {
+  fill: var(--ink-2);
+  font-size: 11px;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
 .legend.ramp {
   gap: 4px 10px;
 }

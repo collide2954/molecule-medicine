@@ -18,7 +18,7 @@ import {
 } from './gtopdb.mjs';
 import { davisMatrix, selectivity, kinaseGroup } from './kinome.mjs';
 import { rcsbByYear, gpcrdbSummary } from './structures.mjs';
-import { forceLayout } from './layout.mjs';
+import { packedLayout } from './layout.mjs';
 import { drugTargetNetwork } from './network.mjs';
 import { clinvarGenes, hgncCoding, geneSupport } from './genetics.mjs';
 
@@ -116,7 +116,7 @@ const network = async () => {
   const drugMap = new Map((await drugs()).map((d) => [d.id, { group: d.atc[0]?.[0] ?? null }]));
   const targetMap = new Map(list.map((t) => [t.id, { group: t.family }]));
   const net = drugTargetNetwork(mechanisms, drugMap, targetMap);
-  const xy = forceLayout(net.nodes.length, net.edges, { iterations: 400 });
+  const xy = packedLayout(net.nodes.length, net.edges, { iterations: 300 });
   return {
     drugs: net.nodes.filter((n) => n.kind === 'drug').length,
     nodes: net.nodes.map((n, i) => [n.id, ...xy[i]]),

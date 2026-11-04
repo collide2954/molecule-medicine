@@ -1,5 +1,5 @@
 import {
-  exact, compact, niceTicks, scaleLinear, scaleLog, logTicks, labelStep, waffle as waffleCells, stack, easeOut, spread, squarify, heat, spanTicks,
+  exact, compact, niceTicks, scaleLinear, scaleLog, logTicks, labelStep, waffle as waffleCells, stack, easeOut, spread, squarify, heat, spanTicks, ticks125, span125,
 } from './lib.js';
 import { hexbin } from './stats.js';
 import { bondLines, atomLabel } from './chem.js';
@@ -774,6 +774,288 @@ export const molgrid = ({
         item.sub ? el('text', { class: 'mol-sub', x: x0 + cw / 2, y: y0 + ch + 26, 'text-anchor': 'middle' }, fit(item.sub)) : null);
     }));
   hover(svg, (k) => describe(items[Number(k)]));
+  return mountSvg(mount, svg);
+};
+
+const clip = (text, px, per = 6.6) => {
+  const room = Math.floor((px - 10) / per);
+  const s = String(text);
+  if (s.length <= room) return s;
+  return room >= 4 ? `${s.slice(0, room - 1).trimEnd()}…` : null;
+};
+
+export const icicle = ({
+  mount, cells, aria, describe, colorOf, rowH = 46,
+}) => {
+  const W = widthOf(mount);
+  const shown = cells.filter((c) => c.depth > 0);
+  const H = Math.max(...shown.map((c) => c.depth)) * rowH;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    shown.map((c, k) => {
+      const x = c.x0 * W;
+      const w = (c.x1 - c.x0) * W;
+      const y = (c.depth - 1) * rowH;
+      const label = w > 30 ? clip(c.node.name, w) : null;
+      const sub = label && w > 64 ? clip(exact(c.node.value), w, 6) : null;
+      const dark = c.depth > 2;
+      return el('g', {
+        'data-class': c.node.path.join(' > '), 'data-depth': c.depth, 'data-k': k, 'data-rank': k,
+      },
+      el('rect', {
+        class: 'cell ice', x: x.toFixed(2), y, width: Math.max(0.5, w - 1).toFixed(2), height: rowH - 2, style: `fill:${colorOf(c)};fill-opacity:${[1, 0.82, 0.42, 0.26][c.depth - 1] ?? 0.2};--i:${c.depth * 6}`,
+      }),
+      label ? el('text', { class: `ice-lab${dark ? ' dark' : ''}`, x: x + 6, y: y + 18 }, label) : null,
+      sub ? el('text', { class: `ice-sub${dark ? ' dark' : ''}`, x: x + 6, y: y + 33 }, sub) : null);
+    }));
+  hover(svg, (k) => describe(shown[Number(k)]));
+  return mountSvg(mount, svg);
+};
+
+export const grid = ({
+  mount, rows, cols, values, aria, describe, color = 'var(--data)', format = compact,
+}) => {
+  const W = widthOf(mount);
+  const L = Math.min(Math.max(...rows.map((r) => String(r).length)) * 6.8 + 10, W * 0.42);
+  const cw = (W - L - 2) / cols.length;
+  const ch = 24;
+  const T = Math.max(...cols.map((c) => String(c).length)) * 6.4 + 12;
+  const H = T + rows.length * ch + 2;
+  const top = Math.log1p(Math.max(1, ...values.flat()));
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    cols.map((c, j) => el('text', { class: 'col-lab', transform: `translate(${(L + j * cw + cw / 2 + 4).toFixed(1)},${T - 6}) rotate(-90)` }, c)),
+    rows.map((r, i) => el('text', { class: 'lab', x: 2, y: T + i * ch + ch / 2 + 4 }, r)),
+    rows.flatMap((r, i) => cols.map((c, j) => {
+      const v = values[i][j];
+      const k = i * cols.length + j;
+      const shade = v ? heat(Math.log1p(v), 0, top) : 0.035;
+      return el('g', { 'data-cell': `${i}:${j}`, 'data-k': k, 'data-rank': k },
+        el('rect', {
+          class: 'cell', x: (L + j * cw).toFixed(1), y: T + i * ch, width: Math.max(1, cw - 2).toFixed(1), height: ch - 2, style: `fill:${color};fill-opacity:${shade};--i:${i}`,
+        }),
+        v && cw >= 7 * String(format(v)).length + 4 ? el('text', {
+          class: `cell-n${shade > 0.5 ? ' on' : ''}`, x: (L + j * cw + cw / 2 - 1).toFixed(1), y: T + i * ch + ch / 2 + 3, 'text-anchor': 'middle',
+        }, format(v)) : null);
+    })));
+  hover(svg, (k) => describe(Math.floor(Number(k) / cols.length), Number(k) % cols.length));
+  return mountSvg(mount, svg);
+};
+
+export const kinomeMap = ({
+  mount, rows, cols, values, groups, side, aria, describe, lo = 5, hi = 9, color = 'var(--s2)', legend,
+}) => {
+  const W = widthOf(mount);
+  const L = Math.min(Math.max(...rows.map((r) => String(r.label).length)) * 6.2 + 8, W * 0.3);
+  const R = W < 560 ? 34 : 64;
+  const T = 26;
+  const rh = 12;
+  const H = T + rows.length * rh + 4;
+  const cw = (W - L - R - 4) / cols.length;
+  const x = (j) => L + j * cw;
+  const y = (i) => T + i * rh;
+  const cells = [];
+  values.forEach((row, i) => row.forEach((v, j) => {
+    if (v !== null) {
+      cells.push(el('rect', {
+        class: 'cell kin', x: x(j).toFixed(2), y: y(i), width: Math.max(0.4, cw).toFixed(2), height: rh - 1, style: `fill:${color};fill-opacity:${heat(v, lo, hi)};--i:${i}`,
+      }));
+    }
+  }));
+  const sx = scaleLinear([0, 1], [W - R + 6, W - 4]);
+  const cross = el('rect', {
+    class: 'cross kin-cross', x: 0, y: 0, width: 0, height: 0, visibility: 'hidden',
+  });
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    el('rect', {
+      class: 'kin-bg', x: L, y: T, width: cols.length * cw, height: rows.length * rh - 1,
+    }),
+    groups.map((g) => {
+      const x0 = x(g.from);
+      const w = (g.to - g.from + 1) * cw;
+      return el('g', {},
+        g.from > 0 ? el('line', {
+          class: 'group-line', x1: x0, x2: x0, y1: T - 4, y2: H - 4,
+        }) : null,
+        String(g.label).length * 6.4 <= w ? el('text', { class: 'group-lab', x: x0 + w / 2, y: T - 8, 'text-anchor': 'middle' }, g.label) : null);
+    }),
+    cells,
+    rows.map((r, i) => el('text', { class: `lab kin-lab${r.mark ? ' hi' : ''}`, x: 0, y: y(i) + rh - 2.5 }, r.label)),
+    rows.map((r, i) => el('rect', {
+      class: 'kin-bar', x: sx(0), y: y(i) + 2, width: Math.max(0.5, sx(side[i]) - sx(0)), height: rh - 5,
+    })),
+    W >= 560 ? el('text', { class: 'group-lab', x: sx(0), y: T - 8 }, 'S(3 µM)') : null,
+    cross,
+    el('rect', {
+      class: 'hit', 'data-k': 0, x: L, y: T, width: cols.length * cw, height: rows.length * rh,
+    }));
+  const at = (event) => {
+    if (event.index !== undefined) return [Math.floor(event.index / cols.length), event.index % cols.length];
+    const box = svg.getBoundingClientRect();
+    const px = (event.clientX - box.left) * (W / box.width);
+    const py = (event.clientY - box.top) * (H / box.height);
+    return [Math.max(0, Math.min(rows.length - 1, Math.floor((py - T) / rh))), Math.max(0, Math.min(cols.length - 1, Math.floor((px - L) / cw)))];
+  };
+  hover(svg, (k, event) => {
+    const [i, j] = at(event);
+    cross.setAttribute('x', x(j) - 1);
+    cross.setAttribute('y', y(i) - 1);
+    cross.setAttribute('width', Math.max(2, cw) + 2);
+    cross.setAttribute('height', rh + 1);
+    cross.setAttribute('visibility', 'visible');
+    return describe(i, j);
+  }, { steps: rows.length * cols.length });
+  return legend ? mountSvg(mount, svg, legend) : mountSvg(mount, svg);
+};
+
+export const network = ({
+  mount, nodes, edges, aria, describe, colorOf, radius = () => 1.8, legend = [],
+}) => {
+  const W = widthOf(mount);
+  const pad = 10;
+  const maxX = Math.max(...nodes.map((n) => n.x)) || 1;
+  const maxY = Math.max(...nodes.map((n) => n.y)) || 1;
+  const H = Math.round(Math.min(maxY * ((W - 2 * pad) / maxX) + 2 * pad, 1100));
+  const s = Math.min((W - 2 * pad) / maxX, (H - 2 * pad) / maxY);
+  const ox = (W - maxX * s) / 2;
+  const pos = nodes.map((n) => [ox + n.x * s, pad + n.y * s]);
+  const path = (list) => list.map(([a, b]) => `M${pos[a][0].toFixed(1)},${pos[a][1].toFixed(1)}L${pos[b][0].toFixed(1)},${pos[b][1].toFixed(1)}`).join('');
+  const ranked = nodes.map((_, i) => i).sort((a, b) => nodes[b].degree - nodes[a].degree || String(nodes[a].name).localeCompare(String(nodes[b].name)));
+  const order = [...ranked].reverse();
+  const ring = el('circle', {
+    class: 'cross net-ring', cx: 0, cy: 0, r: 6, visibility: 'hidden',
+  });
+  const lit = el('path', { class: 'cross net-hi', d: 'M0,0', visibility: 'hidden' });
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    el('path', { class: 'links', d: path(edges) }),
+    order.map((i) => el('circle', {
+      class: `pt node ${nodes[i].kind}`, cx: pos[i][0].toFixed(1), cy: pos[i][1].toFixed(1), r: radius(nodes[i]), style: `fill:${colorOf(nodes[i])}`,
+    })),
+    ring,
+    lit,
+    el('rect', {
+      class: 'hit', 'data-k': 0, x: 0, y: 0, width: W, height: H,
+    }));
+  const nearest = (event) => {
+    if (event.index !== undefined) return ranked[event.index];
+    const box = svg.getBoundingClientRect();
+    const px = (event.clientX - box.left) * (W / box.width);
+    const py = (event.clientY - box.top) * (H / box.height);
+    let best = 0;
+    let bd = Infinity;
+    pos.forEach(([cx, cy], i) => {
+      const d = (cx - px) ** 2 + (cy - py) ** 2;
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    });
+    return best;
+  };
+  hover(svg, (k, event) => {
+    const i = nearest(event);
+    ring.setAttribute('cx', pos[i][0]);
+    ring.setAttribute('cy', pos[i][1]);
+    ring.setAttribute('r', radius(nodes[i]) + 4);
+    ring.setAttribute('visibility', 'visible');
+    lit.setAttribute('d', path(edges.filter(([a, b]) => a === i || b === i)) || 'M0,0');
+    lit.setAttribute('visibility', 'visible');
+    return describe(nodes[i], i);
+  }, { steps: nodes.length });
+  return legend.length ? mountSvg(mount, svg, legendOf(legend)) : mountSvg(mount, svg);
+};
+
+export const forest = ({
+  mount, groups, aria, describe, reference = 1, format = (v) => v.toFixed(2),
+}) => {
+  const W = widthOf(mount);
+  const rows = groups.flatMap((g) => [{ head: g.label }, ...g.rows]);
+  const L = Math.min(Math.max(...rows.map((r) => String(r.label ?? '').length)) * 6.8 + 12, W * 0.36);
+  const R = W < 560 ? 12 : 118;
+  const T = 22;
+  const rh = 21;
+  const H = T + rows.length * rh + 6;
+  const [lo, hi] = span125(Math.min(...rows.filter((r) => !r.head).map((r) => r.lo)), Math.max(...rows.filter((r) => !r.head).map((r) => r.hi)));
+  const x = scaleLog([lo, hi], [L + 6, W - R - 6]);
+  const spaced = ticks125(lo, hi).reduce((kept, t) => {
+    if (!kept.length || x(t) - x(kept.at(-1)) >= 30) kept.push(t);
+    return kept;
+  }, []);
+  let k = -1;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    spaced.map((t) => el('g', {},
+      el('line', {
+        class: 'grid', x1: x(t), x2: x(t), y1: T - 6, y2: H,
+      }),
+      el('text', {
+        class: 'tick', x: x(t), y: 10, 'text-anchor': 'middle',
+      }, String(t)))),
+    el('line', {
+      class: 'ref', x1: x(reference), x2: x(reference), y1: T - 6, y2: H,
+    }),
+    rows.map((r, i) => {
+      const cy = T + i * rh + rh / 2;
+      if (r.head) return el('text', { class: 'group-head', x: 0, y: cy + 5 }, r.head);
+      k += 1;
+      return el('g', { 'data-row': r.key, 'data-k': k, 'data-rank': k },
+        el('rect', {
+          class: 'row-hit', x: 0, y: cy - rh / 2, width: W, height: rh,
+        }),
+        el('text', { class: 'lab', x: 0, y: cy + 4 }, r.label),
+        el('line', {
+          class: 'ci', x1: x(Math.max(lo, r.lo)), x2: x(Math.min(hi, r.hi)), y1: cy, y2: cy,
+        }),
+        el('circle', {
+          class: `dot${r.mark ? ' hi' : ''}`, cx: x(r.rs), cy, r: 4.5, style: `--i:${k}`,
+        }),
+        R > 40 ? el('text', { class: 'val', x: W - R + 8, y: cy + 4 }, `${format(r.rs)} (${format(r.lo)}–${format(r.hi)})`) : null);
+    }));
+  const flat = rows.filter((r) => !r.head);
+  hover(svg, (key) => describe(flat[Number(key)]));
+  return mountSvg(mount, svg);
+};
+
+export const scatter = ({
+  mount, points, xDomain, yDomain, xLabel, yLabel, aria, describe, labels = [], xFormat = compact, yFormat = compact, height = 320,
+}) => {
+  const W = widthOf(mount);
+  const L = 46;
+  const R = 16;
+  const T = 18;
+  const B = 34;
+  const H = height;
+  const xt = spanTicks(xDomain[0], xDomain[1]);
+  const yt = spanTicks(yDomain[0], yDomain[1]);
+  const x = scaleLinear([xt[0], xt.at(-1)], [L + 6, W - R - 6]);
+  const y = scaleLinear([yt[0], yt.at(-1)], [H - B - 6, T + 6]);
+  const named = new Set(labels);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
+    yt.map((t) => el('g', {},
+      el('line', {
+        class: 'grid', x1: L, x2: W - R, y1: y(t), y2: y(t),
+      }),
+      el('text', {
+        class: 'tick', x: L - 8, y: y(t) + 4, 'text-anchor': 'end',
+      }, yFormat(t)))),
+    xt.map((t) => el('g', {},
+      el('line', {
+        class: 'grid', x1: x(t), x2: x(t), y1: T, y2: H - B,
+      }),
+      el('text', {
+        class: 'tick', x: x(t), y: H - B + 16, 'text-anchor': 'middle',
+      }, xFormat(t)))),
+    xLabel ? el('text', {
+      class: 'axis-lab', x: W - R, y: H - 4, 'text-anchor': 'end',
+    }, xLabel) : null,
+    yLabel ? el('text', { class: 'axis-lab', x: L, y: T - 6 }, yLabel) : null,
+    points.map((p, k) => el('circle', {
+      class: `pt${p.hi ? ' hi' : ''}`, 'data-point': p.key, 'data-k': k, 'data-rank': k, cx: x(p.x), cy: y(p.y), r: 4.5,
+    })),
+    points.filter((p) => named.has(p.key)).map((p) => {
+      const right = x(p.x) > W * 0.7;
+      return el('text', {
+        class: 'pt-lab', x: x(p.x) + (right ? -8 : 8), y: y(p.y) + 4, 'text-anchor': right ? 'end' : 'start',
+      }, p.label);
+    }));
+  hover(svg, (k) => describe(points[Number(k)]));
   return mountSvg(mount, svg);
 };
 

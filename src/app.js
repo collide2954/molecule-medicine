@@ -1,9 +1,9 @@
 import snapshot from './snapshot.js';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT,
 } from './facts.js';
 import {
-  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal,
+  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar,
 } from './lib.js';
 import { linearEdges, histogram, summary } from './stats.js';
 import { unpackMol } from './chem.js';
@@ -12,7 +12,10 @@ import {
   findings, release, smallMolecules, propertyByDecade, elementShares, elementByDecade, ringCounts, chiralityByDecade, stemCounts, flagCounts, atcGroups, typeGroups, systemName, drugName,
 } from './findings.js';
 import {
-  hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines,
+  familyCounts, actionCounts, familyActions, topTargets, degreeBins, targetHierarchy, classCounts, ecCounts, networkGraph, networkPieces, gtopdbRows, affinityByType, kinomeGroups, kinomeOrder, softName, lastFullYear,
+} from './targets.js';
+import {
+  hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend,
 } from './charts.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -465,6 +468,391 @@ const renderAtc = () => {
   attachData('#atc3-chart', 'atc-subgroups', ['Code', 'Subgroup', 'Approved drugs'], ranked.map((r) => [r.code, soften(r.name), r.n]));
 };
 
+const TP = snapshot.targets;
+const DRUG_NAME = new Map(D.map((d) => [d.id, drugName(d.name)]));
+const lower = (s) => String(s ?? '').toLowerCase();
+const plural = (n, one, many = `${one}s`) => `${exact(n)} ${n === 1 ? one : many}`;
+const targetUrl = (id) => `https://www.ebi.ac.uk/chembl/explore/target/${id}`;
+const pairCount = new Set(TP.mechanisms.map((m) => `${m.drug}|${m.target}`)).size;
+const ACTION_SHORT = {
+  'POSITIVE ALLOSTERIC MODULATOR': 'PAM', 'NEGATIVE ALLOSTERIC MODULATOR': 'NAM', REST: 'all others',
+};
+const actionLabel = (a) => ACTION_SHORT[a] ?? lower(a);
+const FAMILY_COLORS = {
+  GPCR: 'var(--s2)', Kinase: 'var(--s1)', 'Ion channel': 'var(--s4)', 'Nuclear receptor': 'var(--s3)', Protease: 'var(--s5)',
+};
+
+const renderClasses = () => {
+  const cov = TP.coverage;
+  const tree = targetHierarchy(snapshot);
+  const share = (names) => tree.children.filter((c) => names.includes(c.name)).reduce((n, c) => n + c.value, 0) / tree.value;
+  $('#classes-dek').textContent = `${exact(cov.withTarget)} of ${exact(cov.approved)} approved drugs have at least one molecular target in ChEMBL; ${exact(cov.untargeted)} have a mechanism with no named target, and ${exact(cov.none)} have no mechanism recorded. Enzymes, membrane receptors and ion channels take ${pct(share(['Enzyme', 'Membrane receptor', 'Ion channel']))} of drug–target pairs.`;
+  const palette = [...TILES, 'var(--ink-2)'];
+  const colors = new Map(tree.children.map((c, i) => [c.name, palette[i] ?? 'var(--muted)']));
+  const cells = partition(tree, 4);
+  icicle({
+    mount: $('#class-chart'),
+    cells,
+    colorOf: (c) => colors.get(c.node.path[0]),
+    aria: 'Drug–target pairs of approved drugs by ChEMBL protein class, four levels deep',
+    describe: (c) => tipLines(`${exact(c.node.value)} drug–target pairs`, c.node.path.join(' › '), `${plural(c.node.drugs, 'approved drug')}`, `${plural(c.node.targets, 'target')}`, `${pct(c.node.value / tree.value)} of all pairs`),
+  });
+  attachData('#class-chart', 'target-classes', ['Level', 'Class', 'Drug–target pairs', 'Approved drugs', 'Targets'], cells.filter((c) => c.depth > 0).map((c) => [c.depth, c.node.path.join(' > '), c.node.value, c.node.drugs, c.node.targets]));
+  const fams = familyCounts(snapshot);
+  hbars({
+    mount: $('#family-chart'),
+    rows: fams.map((f) => ({ key: f.family, label: f.family, values: { drugs: f.drugs } })),
+    segments: [{ key: 'drugs', label: 'Approved drugs', color: 'var(--s2)' }],
+    labelShare: 0.3,
+    R: 140,
+    valueText: (r) => `${exact(r.values.drugs)} drugs · ${plural(fams.find((f) => f.family === r.key).targets, 'target')}`,
+    aria: 'Approved drugs by target family',
+    describe: (r) => {
+      const f = fams.find((x) => x.family === r.key);
+      return tipLines(`${exact(f.drugs)} approved drugs`, f.family, plural(f.targets, 'target'), `${pct(f.drugs / TP.coverage.withTarget)} of drugs with a target`);
+    },
+  });
+  attachData('#family-chart', 'target-families', ['Family', 'Approved drugs', 'Targets'], fams.map((f) => [f.family, f.drugs, f.targets]));
+};
+
+const renderActions = () => {
+  const fa = familyActions(snapshot);
+  const counts = actionCounts(snapshot);
+  const row = (fam) => fa.counts[fa.families.indexOf(fam)] ?? [];
+  const total = (r) => r.reduce((a, b) => a + b, 0) || 1;
+  const at = (fam, action) => (row(fam)[fa.actions.indexOf(action)] ?? 0) / total(row(fam));
+  $('#actions-dek').textContent = `On GPCRs, ${pct(at('GPCR', 'AGONIST'))} of drug–target pairs are agonists and ${pct(at('GPCR', 'ANTAGONIST'))} antagonists; on ion channels, ${pct(at('Ion channel', 'BLOCKER'))} are blockers, and on enzymes of every kind inhibition is the rule. ChEMBL records ${exact(counts.length)} kinds of action in all.`;
+  grid({
+    mount: $('#action-chart'),
+    rows: fa.families,
+    cols: fa.actions.map(actionLabel),
+    values: fa.counts,
+    color: 'var(--s2)',
+    aria: 'Drug–target pairs by target family and action',
+    describe: (i, j) => tipLines(exact(fa.counts[i][j]), `drug–target pairs: ${fa.families[i]}, ${actionLabel(fa.actions[j])}`, `${pct(fa.counts[i][j] / total(fa.counts[i]))} of the family’s pairs`),
+  });
+  attachData('#action-chart', 'actions-by-family', ['Family', ...fa.actions.map(actionLabel)], fa.families.map((f, i) => [f, ...fa.counts[i]]));
+  const top = counts.slice(0, 15);
+  dotplot({
+    mount: $('#action-count-chart'),
+    rows: top.map((a) => ({ key: a.action, label: lower(a.action), value: a.pairs })),
+    labelShare: 0.42,
+    labelMax: 260,
+    aria: 'Drug–target pairs by action',
+    describe: (r) => {
+      const a = top.find((x) => x.action === r.key);
+      return tipLines(`${exact(a.pairs)} drug–target pairs`, lower(a.action), plural(a.drugs, 'approved drug'));
+    },
+  });
+  attachData('#action-count-chart', 'actions', ['Action', 'Drug–target pairs', 'Approved drugs'], counts.map((a) => [lower(a.action), a.pairs, a.drugs]));
+};
+
+const renderDrugged = () => {
+  const top = topTargets(snapshot, 25);
+  const ten = topTargets(snapshot, 10).reduce((n, t) => n + t.drugs, 0);
+  const perDrug = new Map();
+  for (const m of TP.mechanisms) {
+    if (!perDrug.has(m.drug)) perDrug.set(m.drug, new Set());
+    perDrug.get(m.drug).add(m.target);
+  }
+  const most = [...perDrug].map(([id, s]) => ({ id, n: s.size })).sort((a, b) => b.n - a.n || a.id.localeCompare(b.id)).slice(0, 3);
+  $('#drugged-dek').textContent = `The ten most-drugged targets hold ${pct(ten / pairCount)} of all ${exact(pairCount)} drug–target pairs. Among drugs, ${DRUG_NAME.get(most[0].id)} has the most targets, ${most[0].n}, then ${DRUG_NAME.get(most[1].id)}, ${most[1].n}, and ${DRUG_NAME.get(most[2].id)}, ${most[2].n}.`;
+  dotplot({
+    mount: $('#drugged-chart'),
+    rows: top.map((t) => ({ key: t.id, label: t.name, value: t.drugs })),
+    labelShare: 0.42,
+    labelMax: 330,
+    aria: 'The 25 targets with the most approved drugs',
+    describe: (r) => {
+      const t = top.find((x) => x.id === r.key);
+      return tipLines(`${exact(t.drugs)} approved drugs`, t.name, t.family, `for example ${t.examples.join(', ')}`);
+    },
+    href: (r) => targetUrl(r.key),
+    linkText: (r) => `${r.key} in ChEMBL`,
+  });
+  attachData('#drugged-chart', 'most-drugged-targets', ['ChEMBL ID', 'Target', 'Family', 'Approved drugs'], topTargets(snapshot, 100).map((t) => [t.id, t.name, t.family, t.drugs]));
+  const bins = degreeBins(snapshot);
+  for (const [sel, list, noun, file, head] of [['#per-target-chart', bins.perTarget, 'targets', 'drugs-per-target', 'Approved drugs'], ['#per-drug-chart', bins.perDrug, 'approved drugs', 'targets-per-drug', 'Targets']]) {
+    columns({
+      mount: $(sel),
+      rows: list,
+      key: (r) => r.label,
+      attr: 'bin',
+      label: (r) => r.label,
+      value: (r) => r.n,
+      aria: sel === '#per-target-chart' ? 'Targets by number of approved drugs' : 'Approved drugs by number of targets',
+      describe: (r) => tipLines(`${exact(r.n)} ${noun}`, `with ${r.label} ${sel === '#per-target-chart' ? 'approved drugs' : 'targets'}`),
+    });
+    attachData(sel, file, [head, noun === 'targets' ? 'Targets' : 'Approved drugs'], list.map((r) => [r.label, r.n]));
+  }
+};
+
+const renderNetwork = () => {
+  const g = networkGraph(snapshot);
+  const neighbours = g.nodes.map(() => []);
+  for (const [a, b] of g.edges) {
+    neighbours[a].push(b);
+    neighbours[b].push(a);
+  }
+  const hub = g.nodes.filter((n) => n.kind === 'target').reduce((a, b) => (b.degree > a.degree ? b : a));
+  const alone = g.edges.filter(([a, b]) => g.nodes[a].degree === 1 && g.nodes[b].degree === 1).length;
+  const [first, second] = networkPieces(snapshot);
+  const many = (f) => (f.family === 'GPCR' ? 'GPCRs' : `${lower(f.family)}s`);
+  const mix = (p) => p.families.slice(0, 2).map((f) => `${exact(f.n)} ${many(f)}`).join(' and ');
+  $('#network-dek').textContent = `The largest connected piece joins ${exact(first.drugs)} drugs to ${exact(first.targets)} targets, among them ${mix(first)}; the second joins ${exact(second.drugs)} drugs to ${exact(second.targets)} targets, ${exact(second.families[0].n)} of them ${many(second.families[0])}. The ${softName(hub.name)} is the largest hub, with ${exact(hub.degree)} drugs, and ${exact(alone)} drug–target pairs stand alone.`;
+  const legend = [...Object.entries(FAMILY_COLORS).map(([label, color]) => ({ label, color })), { label: 'other targets', color: 'var(--ink-2)' }, { label: 'drugs', color: 'var(--muted)' }];
+  network({
+    mount: $('#network-chart'),
+    nodes: g.nodes,
+    edges: g.edges,
+    legend,
+    colorOf: (n) => (n.kind === 'drug' ? 'var(--muted)' : FAMILY_COLORS[n.group] ?? 'var(--ink-2)'),
+    radius: (n) => (n.kind === 'drug' ? 1.7 : Math.min(9, 1.9 + Math.sqrt(n.degree) * 0.95)),
+    aria: 'Network of approved drugs and their targets',
+    describe: (n, i) => {
+      const names = neighbours[i].map((j) => g.nodes[j]).sort((a, b) => b.degree - a.degree).map((m) => m.name);
+      const list = `${names.slice(0, 5).join(', ')}${names.length > 5 ? ', …' : ''}`;
+      return tipLines(n.name, n.kind === 'drug' ? `approved drug${n.group ? `, ATC group ${n.group}` : ''}` : `target, ${n.group}`, `${plural(n.degree, 'link')}: ${list}`, { href: n.kind === 'drug' ? chemblUrl(n.id) : targetUrl(n.id), text: `${n.id} in ChEMBL` });
+    },
+  });
+  attachData('#network-chart', 'drug-target-network', ['Kind', 'ChEMBL ID', 'Name', 'Group', 'Links'], g.nodes.map((n) => [n.kind, n.id, n.name, n.group ?? '', n.degree]));
+};
+
+const GTOPDB_SHORT = {
+  gpcr: 'GPCR', nhr: 'NHR', lgic: 'LGIC', vgic: 'VGIC', other_ic: 'other IC', catalytic_receptor: 'catalytic', enzyme: 'enzyme', transporter: 'transporter', other_protein: 'other',
+};
+const nanomolar = (p) => molar(Number(pToMolar(p).toPrecision(2)));
+
+const renderGtopdb = () => {
+  const G = snapshot.gtopdb;
+  const rows = gtopdbRows(snapshot);
+  const sum = (list, key) => list.reduce((n, r) => n + r[key], 0);
+  const tr = rows.find((r) => r.type === 'transporter');
+  const all = summary(G.affinities.map((a) => a.value));
+  const boxRowsOf = affinityByType(snapshot);
+  const vgic = boxRowsOf.find((r) => r.type === 'vgic');
+  $('#gtopdb-dek').textContent = `GtoPdb ${G.version} curates ${exact(G.interactions)} human ligand–target interactions. ${pct(sum(rows, 'none') / sum(rows, 'targets'))} of its targets have no human ligand curated${tr ? `, ${pct(tr.none / tr.targets)} of transporters` : ''}. The median approved drug binds its primary target at ${decimal(all.median, 1)}, about ${nanomolar(all.median)}${vgic ? `; at voltage-gated ion channels the median is ${decimal(vgic.median, 1)}, about ${nanomolar(vgic.median)}` : ''}.`;
+  const SEG = [{ key: 'approved', label: 'approved drug among ligands', color: 'var(--s2)' }, { key: 'other', label: 'other ligands only', color: 'var(--data)' }, { key: 'none', label: 'no human ligand curated', color: 'var(--rule)' }];
+  hbars({
+    mount: $('#gtopdb-chart'),
+    rows: rows.map((r) => ({ key: r.type, label: r.label, values: { approved: r.approved, other: r.otherLigand, none: r.none } })),
+    segments: SEG,
+    labelShare: 0.28,
+    aria: 'GtoPdb targets by type and ligand coverage',
+    describe: (r) => {
+      const d = rows.find((x) => x.type === r.key);
+      return tipLines(plural(d.targets, 'target'), d.label, `${exact(d.approved)} with an approved drug`, `${exact(d.otherLigand)} with other ligands only`, `${exact(d.none)} with no human ligand`, `${exact(d.orphans)} orphans, ${exact(d.endogenous)} with an endogenous ligand`);
+    },
+  });
+  attachData('#gtopdb-chart', 'gtopdb-targets', ['Type', 'Targets', 'With an approved drug', 'Other ligands only', 'No human ligand', 'Orphans', 'With an endogenous ligand'], rows.map((r) => [r.label, r.targets, r.approved, r.otherLigand, r.none, r.orphans, r.endogenous]));
+  boxes({
+    mount: $('#affinity-chart'),
+    rows: boxRowsOf.map((r) => ({
+      key: r.type, label: GTOPDB_SHORT[r.type], n: r.n, lo: r.lo, q1: r.q1, median: r.median, q3: r.q3, hi: r.hi,
+    })),
+    attr: 'type',
+    yFormat: (v) => decimal(v, 0),
+    aria: 'Affinity of approved drugs at their primary targets by target type',
+    describe: (r) => {
+      const d = boxRowsOf.find((x) => x.type === r.key);
+      return tipLines(`median ${decimal(d.median, 2)}, about ${nanomolar(d.median)}`, d.label, `middle half ${decimal(d.q1, 2)} to ${decimal(d.q3, 2)}`, `5th to 95th percentile ${decimal(d.lo, 2)} to ${decimal(d.hi, 2)}`, plural(d.n, 'interaction'));
+    },
+  });
+  attachData('#affinity-chart', 'approved-drug-affinities', ['Ligand', 'Target', 'Type', 'Units', 'Value', 'Action'], G.affinities.map((a) => [a.ligand, a.target, a.type ?? '', a.units, a.value, a.action]));
+};
+
+const renderOrphans = () => {
+  const G = snapshot.gtopdb;
+  const byFamily = new Map();
+  for (const o of G.orphans) byFamily.set(o.family, [...(byFamily.get(o.family) ?? []), o]);
+  const fams = [...byFamily].map(([family, list]) => ({ family, list })).sort((a, b) => b.list.length - a.list.length || a.family.localeCompare(b.family));
+  const of = (type) => G.orphans.filter((o) => o.type === type).length;
+  const endo = Object.entries(G.endogenous).map(([type, n]) => ({ type, n })).sort((a, b) => b.n - a.n);
+  const endoTotal = endo.reduce((n, e) => n + e.n, 0);
+  const share = (type) => pct((G.endogenous[type] ?? 0) / endoTotal);
+  $('#orphans-dek').textContent = `${exact(G.orphans.length)} GtoPdb targets are orphans: ${exact(of('gpcr'))} GPCRs, ${exact(of('nhr'))} nuclear receptors and ${exact(of('transporter'))} transporters. Of ${exact(endoTotal)} endogenous ligands with a curated human target, ${share('Peptide')} are peptides and ${share('Metabolite')} metabolites.`;
+  dotplot({
+    mount: $('#orphan-chart'),
+    rows: fams.map((f) => ({ key: f.family, label: f.family, value: f.list.length })),
+    scale: 'linear',
+    labelShare: 0.6,
+    labelMax: 340,
+    aria: 'Orphan targets in GtoPdb by family',
+    describe: (r) => {
+      const f = fams.find((x) => x.family === r.key);
+      return tipLines(plural(f.list.length, 'orphan target'), f.family, `for example ${f.list.slice(0, 4).map((o) => o.gene ?? o.name).join(', ')}`);
+    },
+  });
+  attachData('#orphan-chart', 'orphan-targets', ['GtoPdb ID', 'Type', 'Family', 'Target', 'Gene'], G.orphans.map((o) => [o.id, o.type, o.family, o.name, o.gene ?? '']));
+  dotplot({
+    mount: $('#endogenous-chart'),
+    rows: endo.map((e) => ({ key: e.type, label: lower(e.type), value: e.n })),
+    labelShare: 0.36,
+    aria: 'Endogenous ligands in GtoPdb by ligand type',
+    describe: (r) => tipLines(plural(r.value, 'endogenous ligand'), r.label, pct(r.value / endoTotal)),
+  });
+  attachData('#endogenous-chart', 'endogenous-ligands', ['Ligand type', 'Endogenous ligands'], endo.map((e) => [lower(e.type), e.n]));
+};
+
+const classBars = (sel, list, aria, file) => {
+  hbars({
+    mount: $(sel),
+    rows: list.map((r) => ({ key: r.name, label: r.label ?? r.name, values: { drugs: r.drugs }, targets: r.targets })),
+    segments: [{ key: 'drugs', label: 'Approved drugs', color: 'var(--s1)' }],
+    labelShare: 0.36,
+    R: 140,
+    valueText: (r) => `${exact(r.values.drugs)} drugs · ${plural(r.targets, 'target')}`,
+    aria,
+    describe: (r) => tipLines(plural(r.values.drugs, 'approved drug'), r.label, plural(r.targets, 'target')),
+  });
+  attachData(sel, file, ['Class', 'Approved drugs', 'Targets'], list.map((r) => [r.label ?? r.name, r.drugs, r.targets]));
+};
+
+const renderEnzymes = () => {
+  const enz = classCounts(snapshot, ['Enzyme'], 1);
+  const ec = ecCounts(snapshot);
+  const of = (name) => enz.find((r) => r.name === name)?.drugs ?? 0;
+  const kinasesInEc2 = TP.targets.filter((t) => t.family === 'Kinase' && t.ec.some((e) => e.startsWith('2.'))).length;
+  const channels = [...classCounts(snapshot, ['Ion channel'], 2), ...classCounts(snapshot, ['Transporter'], 2)].sort((a, b) => b.drugs - a.drugs || b.targets - a.targets).slice(0, 16);
+  $('#enzymes-dek').textContent = `${exact(of('Cytochrome P450'))} approved drugs act on a cytochrome P450 and ${exact(of('Phosphodiesterase'))} on a phosphodiesterase. By EC number transferases hold the most enzyme targets, ${exact(ec[1].targets)}, ${exact(kinasesInEc2)} of them kinases. Among channels and transporters, the ${softName(channels[0].name)} carry the most drugs, ${exact(channels[0].drugs)}.`;
+  classBars('#enzyme-chart', enz, 'Approved drugs by enzyme class', 'enzyme-classes');
+  classBars('#ec-chart', ec.map((r) => ({ ...r, name: r.ec, label: `EC ${r.ec} ${r.name}` })), 'Enzyme targets of approved drugs by EC class', 'ec-classes');
+  classBars('#channel-chart', channels, 'Approved drugs by ion channel and transporter class', 'channel-classes');
+};
+
+const renderGenetics = () => {
+  const G = GENETIC_SUPPORT;
+  const C = snapshot.genetics;
+  const [all, omim] = G.sources;
+  const phase = (name) => G.phases.find((p) => p.phase === name);
+  const pg = (p) => p.supported / p.total;
+  $('#genetics-dek').textContent = `A drug programme whose target has human genetic support for its indication is ${all.rs.toFixed(1)} times as likely to go from phase I to launch, ${omim.rs.toFixed(1)} times with Mendelian evidence from OMIM. ${pct(pg(phase('Launched')))} of launched target–indication pairs have that support, against ${pct(pg(phase('Phase I')))} in phase I. In ClinVar, ${C.examples[0].symbol} carries the most pathogenic alleles of any gene for an approved-drug target, ${exact(C.examples[0].pathogenic)}.`;
+  forest({
+    mount: $('#rs-chart'),
+    groups: [
+      { label: 'By source of genetic evidence', rows: G.sources.map((r) => ({ ...r, key: r.label, mark: r === all })) },
+      { label: 'By therapy area, all germline evidence', rows: G.areas.map((r) => ({ ...r, key: r.label })) },
+    ],
+    aria: 'Relative success of genetically supported drug programmes by evidence source and therapy area',
+    describe: (r) => tipLines(`relative success ${r.rs.toFixed(2)}`, r.label, `95% CI ${r.lo.toFixed(2)} to ${r.hi.toFixed(2)}`, `${exact(r.launched)} of ${exact(r.supported)} supported programmes launched`),
+  });
+  attachData('#rs-chart', 'genetic-support', ['Group', 'Label', 'Relative success', 'Lower 95%', 'Upper 95%', 'Launched', 'Supported'], [...G.sources.map((r) => ['evidence source', r.label, r.rs, r.lo, r.hi, r.launched, r.supported]), ...G.areas.map((r) => ['therapy area', r.label, r.rs, r.lo, r.hi, r.launched, r.supported])]);
+  const shares = (key) => C.binned[key].map((n) => n / C[key].genes);
+  const series = [{ key: 'targets', label: `genes of approved-drug targets, ${exact(C.targets.genes)}`, color: 'var(--s1)', values: shares('targets') }, { key: 'all', label: `all protein-coding genes, ${exact(C.all.genes)}`, color: 'var(--data-2)', values: shares('all') }];
+  histo({
+    mount: $('#clinvar-chart'),
+    bins: C.bins,
+    series,
+    tickLabel: (b) => b,
+    tickEvery: 1,
+    centered: true,
+    yFormat: (v) => `${Math.round(v * 100)}%`,
+    aria: 'Share of genes by number of pathogenic ClinVar alleles, drug-target genes against all genes',
+    describe: (i) => tipLines(`${C.bins[i]} pathogenic or likely pathogenic alleles`, `drug-target genes ${pct(series[0].values[i])}, ${exact(C.binned.targets[i])}`, `all protein-coding genes ${pct(series[1].values[i])}, ${exact(C.binned.all[i])}`),
+  });
+  attachData('#clinvar-chart', 'clinvar-pathogenic-alleles', ['Pathogenic alleles', 'Drug-target genes', 'All protein-coding genes'], C.bins.map((b, i) => [b, C.binned.targets[i], C.binned.all[i]]));
+};
+
+const GROUP_SHORT = {
+  'Unclassified protein kinase': 'PK', 'Lipid or other kinase': 'lipid', 'Non-human': 'non-human', Unclassified: '?',
+};
+const kinName = (r) => (/^[A-Z ]+$/.test(r.name) ? lower(r.name) : r.name);
+
+const renderKinome = () => {
+  const K = snapshot.kinome;
+  const order = kinomeOrder(snapshot);
+  const total = K.inhibitors.length * K.kinases.length;
+  const measured = K.pkd.flat().filter((v) => v !== null).length;
+  const approved = order.map((i) => K.inhibitors[i]).filter((r) => r.approved);
+  $('#kinome-dek').textContent = `${exact(approved.length)} of the ${exact(K.inhibitors.length)} inhibitors are approved drugs. ${pct(measured / total)} of the ${exact(total)} inhibitor–kinase pairs gave a measurable Kd; the rest showed no binding at 10 µM. Of the approved drugs, ${kinName(approved[0])} is the most selective, S(3 µM) ${decimal(approved[0].s3, 3)}, and ${kinName(approved.at(-1))} the least, ${decimal(approved.at(-1).s3, 2)}.`;
+  kinomeMap({
+    mount: $('#kinome-chart'),
+    rows: order.map((i) => ({ label: kinName(K.inhibitors[i]), mark: K.inhibitors[i].approved })),
+    cols: K.kinases,
+    values: order.map((i) => K.pkd[i]),
+    groups: kinomeGroups(snapshot).map((g) => ({ ...g, label: GROUP_SHORT[g.key] ?? g.key })),
+    side: order.map((i) => K.inhibitors[i].s3),
+    legend: rampLegend(5, 9, (v) => `pKd ${decimal(v, 0)}, ${nanomolar(v)}`, 'var(--s2)'),
+    aria: 'Dissociation constants of kinase inhibitors across the kinome',
+    describe: (r, j) => {
+      const inh = K.inhibitors[order[r]];
+      const kin = K.kinases[j];
+      const v = K.pkd[order[r]][j];
+      return tipLines(v === null ? 'no binding at 10 µM' : `Kd ${nanomolar(v)}, pKd ${decimal(v, 2)}`, `${kinName(inh)} on ${kin.name}`, `${kin.group} group${kin.variant ? `, mutant ${kin.variant}` : ''}`, `${kinName(inh)}: S(3 µM) ${decimal(inh.s3, 3)}, ${plural(inh.hits, 'kinase')} below 3 µM${inh.approved ? ', approved drug' : ''}`);
+    },
+  });
+  const pairs = [];
+  K.inhibitors.forEach((r, i) => K.kinases.forEach((k, j) => {
+    if (K.pkd[i][j] !== null) pairs.push([kinName(r), k.name, k.group, K.pkd[i][j]]);
+  }));
+  attachData('#kinome-chart', 'davis-kinome-kd', ['Inhibitor', 'Kinase construct', 'Group', 'pKd'], pairs);
+  const named = new Set([...order.slice(-3), order[0], order.reduce((a, b) => (K.inhibitors[b].gini < K.inhibitors[a].gini ? b : a))].map((i) => K.inhibitors[i].id));
+  scatter({
+    mount: $('#selectivity-chart'),
+    points: K.inhibitors.map((r) => ({
+      key: r.id, x: r.s3, y: r.gini, hi: r.approved, label: kinName(r),
+    })),
+    labels: [...named],
+    xDomain: [0, 1],
+    yDomain: [Math.floor(Math.min(...K.inhibitors.map((r) => r.gini)) * 20) / 20, 1],
+    xLabel: 'S(3 µM), share of kinases bound',
+    yLabel: 'Gini coefficient',
+    xFormat: (v) => decimal(v, 1),
+    yFormat: (v) => decimal(v, 2),
+    aria: 'Kinase inhibitors by two selectivity scores',
+    describe: (p) => {
+      const r = K.inhibitors.find((x) => x.id === p.key);
+      return tipLines(kinName(r), r.approved ? 'approved drug' : 'not approved', `S(3 µM) ${decimal(r.s3, 3)}, ${plural(r.hits, 'kinase')} below 3 µM`, `Gini ${decimal(r.gini, 3)}`, { href: chemblUrl(r.id), text: `${r.id} in ChEMBL` });
+    },
+  });
+  attachData('#selectivity-chart', 'kinase-selectivity', ['ChEMBL ID', 'Inhibitor', 'Approved', 'Kinases below 3 µM', 'S(3 µM)', 'Gini'], order.map((i) => {
+    const r = K.inhibitors[i];
+    return [r.id, kinName(r), r.approved ? 'yes' : 'no', r.hits, r.s3, r.gini];
+  }));
+};
+
+const renderStructures = () => {
+  const P = snapshot.structures.pdb;
+  const G = snapshot.structures.gpcrdb;
+  const year = lastFullYear(snapshot);
+  const at = (key, y) => P.methods[key][P.years.indexOf(y)] ?? 0;
+  const active = G.states.Active ?? 0;
+  $('#structures-dek').textContent = `Electron microscopy gave ${exact(at('Electron microscopy', year))} structures in ${year}, against ${exact(at('Electron microscopy', year - 10))} in ${year - 10}; X-ray crystallography gave ${exact(at('X-ray', year))}. GPCRdb holds ${exact(G.total)} GPCR structures of ${exact(G.receptors)} receptors, ${pct(active / G.total)} in an active state and ${exact(G.signalling['G protein'] ?? 0)} with a G protein bound.`;
+  const METHODS = [['X-ray', 'var(--s2)'], ['Electron microscopy', 'var(--s1)'], ['NMR', 'var(--s4)'], ['Other', 'var(--data-2)']];
+  stackedArea({
+    mount: $('#pdb-chart'),
+    years: P.years,
+    series: METHODS.map(([key, color]) => ({
+      key, label: key, color, values: P.methods[key],
+    })),
+    aria: 'PDB structures released per year by method',
+  });
+  attachData('#pdb-chart', 'pdb-releases', ['Year', ...METHODS.map(([k]) => k)], P.years.map((y, i) => [y, ...METHODS.map(([k]) => P.methods[k][i])]));
+  const STATES = [['Active', 'var(--s1)'], ['Intermediate', 'var(--s3)'], ['Inactive', 'var(--s2)'], ['Other', 'var(--rule)']];
+  const classes = Object.entries(G.classes).sort((a, b) => b[1] - a[1]);
+  hbars({
+    mount: $('#gpcr-chart'),
+    rows: classes.map(([c]) => ({ key: c, label: c, values: G.byClass[c] })),
+    segments: STATES.map(([key, color]) => ({ key, label: lower(key), color })),
+    labelShare: 0.4,
+    aria: 'GPCR structures by receptor class and state',
+    describe: (r) => tipLines(plural(G.classes[r.key], 'structure'), r.key, ...STATES.map(([s]) => (G.byClass[r.key][s] ? `${lower(s)} ${exact(G.byClass[r.key][s])}` : null))),
+  });
+  attachData('#gpcr-chart', 'gpcr-structures-by-class', ['Class', ...STATES.map(([s]) => s)], classes.map(([c]) => [c, ...STATES.map(([s]) => G.byClass[c][s] ?? 0)]));
+  const years = Array.from({ length: G.years.at(-1) - G.years[0] + 1 }, (_, i) => G.years[0] + i);
+  const keys = Object.keys(G.methods);
+  const colorOf = Object.fromEntries(METHODS);
+  stackedArea({
+    mount: $('#gpcr-years-chart'),
+    years,
+    series: keys.map((key) => ({
+      key, label: key, color: colorOf[key] ?? 'var(--data-2)', values: years.map((y) => G.methods[key][G.years.indexOf(y)] ?? 0),
+    })),
+    aria: 'GPCR structures by year and method',
+  });
+  attachData('#gpcr-years-chart', 'gpcr-structures-by-year', ['Year', ...keys], years.map((y) => [y, ...keys.map((k) => G.methods[k][G.years.indexOf(y)] ?? 0)]));
+};
+
 const decode = () => {
   const value = $('#decoder-input').value;
   if (!value.trim()) {
@@ -503,6 +891,18 @@ const DATA_SOURCES = [
   ['ChEMBL status API, release and counts', FILES.chemblStatus],
   ['ChEMBL approved drugs at maximum phase 4, with structures and properties', FILES.chemblApproved],
   ['ChEMBL ATC classification', FILES.chemblAtc],
+  ['ChEMBL mechanisms of action of approved drugs', FILES.chemblMechanisms],
+  ['ChEMBL targets, looked up by ID', FILES.chemblTargets],
+  ['ChEMBL target components and their protein classes', FILES.chemblComponents],
+  ['ChEMBL protein classification', FILES.chemblClasses],
+  ['ChEMBL activities from Davis et al. 2011', FILES.davis],
+  ['GtoPdb targets and families', FILES.gtopdbTargets],
+  ['GtoPdb interactions', FILES.gtopdbInteractions],
+  ['RCSB PDB search API, releases by year and method', FILES.rcsbSearch],
+  ['GPCRdb structures', FILES.gpcrdb],
+  ['ClinVar gene-specific summary', FILES.clinvarGenes],
+  ['HGNC protein-coding genes', FILES.hgncCoding],
+  ['Minikel et al. 2024 display tables', GENETIC_SUPPORT.data],
 ];
 
 const renderSources = () => {
@@ -519,7 +919,7 @@ const renderSources = () => {
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
     `. Cite as: Basic & Clinical Pharmacology in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
-    h('p', {}, `Built from public ChEMBL data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
+    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar and HGNC data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
 };
 
@@ -573,6 +973,16 @@ const drawCharts = () => {
   renderStems();
   renderFlags();
   renderAtc();
+  renderClasses();
+  renderActions();
+  renderDrugged();
+  renderNetwork();
+  renderGtopdb();
+  renderOrphans();
+  renderEnzymes();
+  renderGenetics();
+  renderKinome();
+  renderStructures();
   applySearch();
 };
 

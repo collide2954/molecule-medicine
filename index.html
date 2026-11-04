@@ -57,6 +57,7 @@
       <li><b>Rebuilt weekly.</b> Every count comes from the files and APIs that ChEMBL, FDA, CMS, CDC, NIH and CPIC publish, pulled every Sunday. A source that fails keeps last week’s numbers and its own date. Tap a mark for its numbers.</li>
       <li><b>Two meanings of approved.</b> Chemistry and targets count the drugs ChEMBL lists at maximum phase 4, approved somewhere, one entry per parent compound with its salts folded in. Regulatory history counts FDA novel approvals. Each caption says which.</li>
       <li><b>First approval dates.</b> ChEMBL dates a drug by the earliest approval it records, so medicines older than modern registration, such as aspirin and morphine, carry later years than their first use.</li>
+      <li><b>Drugs, targets and pairs.</b> A drug that acts on three targets makes three drug–target pairs. The targets part counts drugs, targets or pairs, and each caption says which.</li>
       <li><b>Potency and concentration.</b> Affinities are plotted as pKi, pIC50 or pEC50, minus the log of the molar value, with nanomolar in the popups; plasma levels are in ng/mL.</li>
       <li><b>Log scales.</b> Charts that span several orders of magnitude say log scale in their caption.</li>
       <li><b>Every figure’s numbers.</b> Each caption ends with a table and a CSV of exactly what is drawn.</li>
@@ -227,8 +228,150 @@
     </figure>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-targets" data-chapter="targets">
     <p class="chapter-no">Part 2</p>
+    <h2 class="chapter-title">Targets</h2>
+    <p class="chapter-dek">What approved drugs bind and what they do there: the protein classes and families, the actions, the most-drugged targets and the network they form, the receptors, channels and enzymes the Guide to Pharmacology catalogues, the genetics behind targets, one kinase panel measured all against all, and the structures solved.</p>
+  </div>
+
+  <section class="story wrap" id="classes" data-lens="basic" data-nav="Target classes">
+    <header class="head"><p class="label">Target classes</p><h2 data-finding="classes">Target classes</h2><p class="dek" id="classes-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="class-chart"></div>
+      <figcaption>Drug–target pairs of approved drugs by ChEMBL protein class, four levels deep: each band’s width is its share of pairs, and a pair counts once at every level of its target’s class. Targets that are not proteins are filed by kind: nucleic acid, ribosome, non-protein molecule, organism or cell. Source: ChEMBL mechanisms of action and protein classification.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="family-chart"></div>
+      <figcaption>Approved drugs by the family of their targets, with the number of targets in each; a drug counts once in each family it acts on. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="actions" data-lens="basic clinical" data-nav="Actions">
+    <header class="head"><p class="label">Actions</p><h2 data-finding="actions">Actions</h2><p class="dek" id="actions-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="action-chart"></div>
+      <figcaption>Drug–target pairs by target family and the action ChEMBL records, for the eight commonest actions with all others together; shading is log scale. Source: ChEMBL mechanisms of action.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="action-count-chart"></div>
+      <figcaption>Drug–target pairs by action, the 15 commonest, log scale. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="drugged" data-lens="basic clinical" data-nav="Most-drugged">
+    <header class="head"><p class="label">The most-drugged targets</p><h2 data-finding="drugged">The most-drugged targets</h2><p class="dek" id="drugged-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="drugged-chart"></div>
+      <figcaption>The 25 targets with the most approved drugs acting on them as ChEMBL records mechanisms, a drug counted once per target, log scale. Source: ChEMBL.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="per-target-chart"></div>
+        <figcaption>Targets by the number of approved drugs acting on them. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="per-drug-chart"></div>
+        <figcaption>Approved drugs with a molecular target by the number of targets ChEMBL lists for them. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="network" data-lens="basic" data-nav="Network">
+    <header class="head"><p class="label">Drug–target network</p><h2 data-finding="network">Drug–target network</h2><p class="dek" id="network-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="network-chart"></div>
+      <figcaption>Every approved drug with a molecular target in ChEMBL, linked to its targets: grey dots are drugs, coloured dots targets by family, sized by the number of drugs on them. Each connected piece is laid out on its own by a force simulation run when the data were built, and the pieces are packed largest first, after Yıldırım et al. 2007. Source: ChEMBL mechanisms of action.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="gtopdb" data-lens="basic" data-nav="GtoPdb">
+    <header class="head"><p class="label">Guide to Pharmacology</p><h2 data-finding="gtopdb">Guide to Pharmacology</h2><p class="dek" id="gtopdb-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="gtopdb-chart"></div>
+      <figcaption>Targets in the IUPHAR/BPS Guide to PHARMACOLOGY by type, split by whether an approved drug, only other ligands, or no ligand has a curated human interaction. Source: GtoPdb targets, families and interactions.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="affinity-chart"></div>
+      <figcaption>Affinity of approved drugs at their primary human targets, as the negative log of the molar value, pKi, pKd, pIC50, pEC50, pA2 and pKB pooled, by target type; 9 is 1 nM. Each box spans the middle half, the line marks the median and the whiskers run from the 5th to the 95th percentile. Types with fewer than 10 values are left out. Source: GtoPdb interactions.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="orphans" data-lens="basic genomics" data-nav="Orphans">
+    <header class="head"><p class="label">Orphans and endogenous ligands</p><h2 data-finding="orphans">Orphans and endogenous ligands</h2><p class="dek" id="orphans-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="orphan-chart"></div>
+        <figcaption>Orphan targets in GtoPdb by family: receptors and transporters with no confirmed endogenous ligand or substrate. Source: GtoPdb targets and families.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="endogenous-chart"></div>
+        <figcaption>Endogenous ligands with a curated human target interaction in GtoPdb, by ligand type. Source: GtoPdb interactions.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="enzymes" data-lens="basic" data-nav="Enzymes and channels">
+    <header class="head"><p class="label">Enzymes, channels and transporters</p><h2 data-finding="enzymes">Enzymes, channels and transporters</h2><p class="dek" id="enzymes-dek"></p></header>
+    <figure class="fig narrow">
+      <div class="chart" id="enzyme-chart"></div>
+      <figcaption>Approved drugs by enzyme class, ChEMBL’s second level, with the number of enzyme targets in each. Penicillin-binding proteins are classed as proteases. Source: ChEMBL.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="ec-chart"></div>
+        <figcaption>Enzyme targets of approved drugs by top-level EC class; a target with numbers in two classes counts in both. Source: ChEMBL target components.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="channel-chart"></div>
+        <figcaption>Approved drugs on ion channel and transporter targets by class, ChEMBL’s third level. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="genetics" data-lens="basic genomics" data-nav="Genetic support">
+    <header class="head"><p class="label">Genetic support</p><h2 data-finding="genetics">Genetic support</h2><p class="dek" id="genetics-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="rs-chart"></div>
+      <figcaption>Relative success from phase I to launch of drug programmes whose target has human genetic support for the indication, against those without, by source of evidence and by therapy area, with 95% confidence intervals; log scale, and 1 means no difference. Fixed table from Minikel et al. 2024, Nature 629:624, supplementary tables S5 and S28; it is not refreshed weekly.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="clinvar-chart"></div>
+      <figcaption>Share of genes by the number of pathogenic or likely pathogenic alleles ClinVar reports in them: genes of human single-protein and protein-complex targets of approved drugs, against all HGNC protein-coding genes. Protein families and groups are left out because they list every member. Source: ClinVar gene-specific summary; HGNC.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="kinome" data-lens="basic" data-nav="Kinome">
+    <header class="head"><p class="label">The kinome, all against all</p><h2 data-finding="kinome">The kinome, all against all</h2><p class="dek" id="kinome-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="kinome-chart"></div>
+      <figcaption>Dissociation constants of each kinase inhibitor in Davis et al. 2011 against each kinase construct, darker for tighter binding from pKd 5 to 9 and above; blank means no binding at 10 µM. Columns are grouped by kinome group, rows run from most to least selective, and the bar at the right is S(3 µM), the share of wild-type kinases bound with Kd below 3 µM. Approved drugs are in bold. Source: ChEMBL document CHEMBL1908390.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="selectivity-chart"></div>
+      <figcaption>Two selectivity scores for each inhibitor: S(3 µM), after Karaman et al. 2008, and the Gini coefficient of its affinities, after Graczyk 2007, which is 1 when all binding falls on one kinase. Approved drugs are in colour. Source: computed from Davis et al. 2011 via ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="structures" data-lens="basic" data-nav="Structures">
+    <header class="head"><p class="label">Structural pharmacology</p><h2 data-finding="structures">Structural pharmacology</h2><p class="dek" id="structures-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="pdb-chart"></div>
+      <figcaption>Experimental structures the Protein Data Bank released each year, by method; the last year is the year to date. Source: RCSB PDB search API.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="gpcr-chart"></div>
+        <figcaption>GPCR structures in GPCRdb by receptor class and the state of the receptor. Source: GPCRdb.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="gpcr-years-chart"></div>
+        <figcaption>GPCR structures by year of publication and method; the last year is the year to date. Source: GPCRdb.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 3</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>
