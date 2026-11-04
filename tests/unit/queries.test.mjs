@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FILES, USER_AGENT, CHEMBL, RCSB_YEARS,
+  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS,
 } from '../../src/queries.js';
 
 test('every source file is an https URL', () => {
@@ -45,4 +45,17 @@ test('the targets queries ask for approved-drug mechanisms, protein classes, Gto
   assert.equal(RCSB_YEARS.request_options.facets[0].facets[0].attribute, 'exptl.method');
   assert.match(FILES.clinvarGenes, /clinvar\/tab_delimited\/gene_specific_summary\.txt$/);
   assert.match(FILES.hgncCoding, /locus_types\/gene_with_protein_product\.txt$/);
+});
+
+test('the bioactivity queries aggregate ChEMBL activities and fetch K4DD, Karaman 2008 and NCI-ALMANAC', () => {
+  assert.match(FILES.chemblSearch, /^https:\/\/www\.ebi\.ac\.uk\/chembl\/elk\/es\/chembl_activity\/_search$/);
+  assert.match(FILES.chemblSources, /source\.json\?limit=1000$/);
+  assert.equal(ACTIVITY_AGGS.size, 0);
+  assert.equal(ACTIVITY_AGGS.track_total_hits, true);
+  for (const name of ['types', 'assay', 'year', 'pchembl', 'source', 'relation', 'withp', 'phantom', 'duplicates', 'validity', 'formats', 'potent']) assert.ok(ACTIVITY_AGGS.aggs[name], name);
+  assert.equal(ACTIVITY_AGGS.aggs.pchembl.histogram.interval, 0.5);
+  for (const name of ['types', 'molecules', 'organisms']) assert.ok(ACTIVITY_AGGS.aggs.potent.aggs[name], name);
+  assert.deepEqual(DOCUMENTS, { davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', k4dd: 'CHEMBL3885741' });
+  assert.match(FILES.almanac, /wiki\.nci\.nih\.gov\/download\/attachments\/338237347\/ComboDrugGrowth_Nov2017\.zip$/);
+  assert.match(FILES.almanacNames, /ComboCompoundNames_small\.txt$/);
 });
