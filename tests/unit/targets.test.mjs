@@ -1,14 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  mechanismRecords, targetRecord, classTree, classPath, targetFamily,
+  mechanismRecords, targetRecord, classTree, classPath, targetFamily, targetClass,
 } from '../../scripts/chembl.mjs';
 import {
   gtopdbVersion, gtopdbTargets, gtopdbSummary, approvedAffinities,
 } from '../../scripts/gtopdb.mjs';
-import { davisMatrix, selectivity } from '../../scripts/kinome.mjs';
+import {
+  davisMatrix, selectivity, kinaseGroup, KINASE_GROUPS,
+} from '../../scripts/kinome.mjs';
 import { rcsbByYear, gpcrdbSummary } from '../../scripts/structures.mjs';
 import { forceLayout } from '../../scripts/layout.mjs';
+import { drugTargetNetwork } from '../../scripts/network.mjs';
 
 test('mechanismRecords keeps parent drug, target, action and directness, dropping mechanisms with no target', () => {
   const rows = mechanismRecords([
@@ -112,19 +115,53 @@ test('approvedAffinities lists approved ligands at their human primary targets w
   ]);
 });
 
-const activity = (mol, molName, target, targetName, pchembl, relation = '=') => ({
-  molecule_chembl_id: mol, molecule_pref_name: molName, target_chembl_id: target, target_pref_name: targetName, pchembl_value: pchembl, standard_relation: relation, standard_type: 'Kd',
+test('targetClass takes the deepest class path among a target’s components and names its family', () => {
+  const tree = classTree(CLASSES);
+  assert.deepEqual(targetClass([1, 3], tree, 'PROTEIN COMPLEX'), { family: 'Kinase', path: ['Enzyme', 'Kinase', 'Protein kinase'] });
+  assert.deepEqual(targetClass([5], tree, 'SINGLE PROTEIN'), { family: 'GPCR', path: ['Membrane receptor', 'Family A G protein-coupled receptor'] });
+  assert.deepEqual(targetClass([], tree, 'ORGANISM'), { family: 'Organism or cell', path: [] });
 });
 
-test('davisMatrix lays Kd measurements out as inhibitors by kinases, inactive as null', () => {
+const activity = (mol, molName, assay, target, construct, pchembl, relation = '=', variant = null) => ({
+  molecule_chembl_id: mol,
+  molecule_pref_name: molName,
+  assay_chembl_id: assay,
+  assay_description: `Binding constant for ${construct} kinase domain`,
+  assay_variant_mutation: variant,
+  target_chembl_id: target,
+  target_pref_name: 'Tyrosine-protein kinase',
+  pchembl_value: pchembl,
+  standard_relation: relation,
+  standard_type: 'Kd',
+});
+
+test('davisMatrix lays Kd measurements out as inhibitors by kinase constructs in kinome-group order, inactive as null', () => {
+  const groups = { CHEMBL1862: 'TK', CHEMBL203: 'TK', CHEMBL301: 'CMGC' };
   const m = davisMatrix([
-    activity('CHEMBL941', 'IMATINIB', 'CHEMBL1862', 'ABL1', '8.0'),
-    activity('CHEMBL941', 'IMATINIB', 'CHEMBL203', 'EGFR', null, '>'),
-    activity('CHEMBL553', 'ERLOTINIB', 'CHEMBL203', 'EGFR', '9.2'),
+    activity('CHEMBL941', 'IMATINIB', 'A1', 'CHEMBL1862', 'ABL1', '8.0'),
+    activity('CHEMBL941', 'IMATINIB', 'A2', 'CHEMBL1862', 'ABL1(T315I)', null, '>', 'T315I'),
+    activity('CHEMBL941', 'IMATINIB', 'A3', 'CHEMBL301', 'CDK2', null, '>'),
+    activity('CHEMBL553', 'ERLOTINIB', 'A3', 'CHEMBL301', 'CDK2', '6.1'),
+    activity('CHEMBL553', 'ERLOTINIB', 'A4', 'CHEMBL203', 'EGFR', '9.2'),
+    activity('CHEMBL4', null, 'A4', 'CHEMBL203', 'EGFR', '5.5'),
+  ], (target) => groups[target]);
+  assert.deepEqual(m.inhibitors, [{ id: 'CHEMBL4', name: 'CHEMBL4' }, { id: 'CHEMBL553', name: 'ERLOTINIB' }, { id: 'CHEMBL941', name: 'IMATINIB' }]);
+  assert.deepEqual(m.kinases, [
+    { id: 'A1', target: 'CHEMBL1862', name: 'ABL1', variant: null, group: 'TK' },
+    { id: 'A2', target: 'CHEMBL1862', name: 'ABL1(T315I)', variant: 'T315I', group: 'TK' },
+    { id: 'A4', target: 'CHEMBL203', name: 'EGFR', variant: null, group: 'TK' },
+    { id: 'A3', target: 'CHEMBL301', name: 'CDK2', variant: null, group: 'CMGC' },
   ]);
-  assert.deepEqual(m.inhibitors, [{ id: 'CHEMBL553', name: 'ERLOTINIB' }, { id: 'CHEMBL941', name: 'IMATINIB' }]);
-  assert.deepEqual(m.kinases, [{ id: 'CHEMBL1862', name: 'ABL1' }, { id: 'CHEMBL203', name: 'EGFR' }]);
-  assert.deepEqual(m.pkd, [[null, 9.2], [8, null]]);
+  assert.deepEqual(m.pkd, [[null, null, 5.5, null], [null, null, 9.2, 6.1], [8, null, null, null]]);
+});
+
+test('kinaseGroup names the kinome group from the ChEMBL class path', () => {
+  assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Protein Kinase', 'TK protein kinase group', 'Tyrosine protein kinase Abl family']), 'TK');
+  assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Protein Kinase', 'Atypical protein kinase group', 'Atypical protein kinase PIKK family']), 'Atypical');
+  assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Lipid kinase']), 'Lipid or other kinase');
+  assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Protein Kinase', 'CAMK protein kinase group'], 'Plasmodium falciparum'), 'Non-human');
+  assert.equal(kinaseGroup([], 'Homo sapiens'), 'Unclassified');
+  assert.deepEqual(KINASE_GROUPS.slice(0, 7), ['TK', 'TKL', 'STE', 'CK1', 'AGC', 'CAMK', 'CMGC']);
 });
 
 test('selectivity gives S(3 µM) and a Gini score over affinities', () => {
@@ -162,6 +199,19 @@ test('gpcrdbSummary counts GPCR structures by class, method, state and year', ()
   assert.deepEqual(s.states, { Inactive: 1, Active: 2 });
   assert.deepEqual(s.years, [2007, 2022]);
   assert.deepEqual(s.methods, { 'X-ray': [1, 0], 'Electron microscopy': [0, 2] });
+});
+
+test('drugTargetNetwork links each known drug to each known target once and counts degrees', () => {
+  const net = drugTargetNetwork([
+    { drug: 'D1', target: 'T1' }, { drug: 'D1', target: 'T1' }, { drug: 'D1', target: 'T2' }, { drug: 'D2', target: 'T1' }, { drug: 'D3', target: 'T9' },
+  ], new Map([['D1', { name: 'one', group: 'N' }], ['D2', { name: 'two', group: 'C' }]]), new Map([['T1', { name: 'alpha', group: 'GPCR' }], ['T2', { name: 'beta', group: 'Kinase' }]]));
+  assert.deepEqual(net.nodes, [
+    { id: 'D1', kind: 'drug', name: 'one', group: 'N', degree: 2 },
+    { id: 'D2', kind: 'drug', name: 'two', group: 'C', degree: 1 },
+    { id: 'T1', kind: 'target', name: 'alpha', group: 'GPCR', degree: 2 },
+    { id: 'T2', kind: 'target', name: 'beta', group: 'Kinase', degree: 1 },
+  ]);
+  assert.deepEqual(net.edges, [[0, 2], [0, 3], [1, 2]]);
 });
 
 test('forceLayout is deterministic, keeps nodes in the unit square and pulls linked nodes together', () => {
