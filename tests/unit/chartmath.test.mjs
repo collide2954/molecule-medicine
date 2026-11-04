@@ -1,8 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  waffle, scaleLinear, scaleLog, logTicks, stack, zoomDomain, panDomain, easeOut, spread, squarify, spanTicks, heat, stepPath, runs, partition, ticks125, span125,
+  waffle, scaleLinear, scaleLog, logTicks, stack, zoomDomain, panDomain, easeOut, spread, squarify, spanTicks, heat, stepPath, runs, partition, ticks125, span125, clipLine,
 } from '../../src/lib.js';
+
+test('clipLine cuts a straight line to the part inside a plot', () => {
+  assert.deepEqual(clipLine(1, 0, [0, 10], [0, 5]), {
+    x1: 0, y1: 0, x2: 5, y2: 5,
+  });
+  assert.deepEqual(clipLine(1, -8, [2, 8], [-5, 0]), {
+    x1: 3, y1: -5, x2: 8, y2: 0,
+  });
+  assert.deepEqual(clipLine(0, 2, [0, 10], [0, 5]), {
+    x1: 0, y1: 2, x2: 10, y2: 2,
+  });
+  assert.equal(clipLine(1, 20, [0, 10], [0, 5]), null);
+});
 
 const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
 
