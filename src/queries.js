@@ -38,7 +38,40 @@ export const FILES = {
   chemblSources: `${CHEMBL}source.json?limit=1000`,
   almanac: 'https://wiki.nci.nih.gov/download/attachments/338237347/ComboDrugGrowth_Nov2017.zip',
   almanacNames: 'https://wiki.nci.nih.gov/download/attachments/338237347/ComboCompoundNames_small.txt',
+  fdaInteractions: 'https://www.fda.gov/drugs/drug-interactions-labeling/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems',
+  cipaIc50: 'https://raw.githubusercontent.com/FDA/CiPA/539ff80d6616895de5d943e7bfb77b346d195db4/Hill_fitting/data/Li2017_IC50.csv',
+  cipaDrugs: 'https://raw.githubusercontent.com/FDA/CiPA/539ff80d6616895de5d943e7bfb77b346d195db4/AP_simulation/data/CiPA_training_drugs.csv',
 };
+
+export const PK_PARAMETERS = [
+  {
+    key: 'f', type: 'F', units: '%', targets: ['Homo sapiens'],
+  },
+  {
+    key: 'halfLife', type: 'T1/2', units: 'hr', targets: ['Homo sapiens'],
+  },
+  {
+    key: 'ppb', type: 'PPB', units: '%', targets: ['Homo sapiens', 'Plasma', 'Serum'],
+  },
+];
+
+export const pkQuery = (parameter, ids) => ({
+  size: 0,
+  query: {
+    bool: {
+      filter: [
+        { term: { standard_type: parameter.type } },
+        { term: { standard_units: parameter.units } },
+        { term: { assay_type: 'A' } },
+        { term: { target_organism: 'Homo sapiens' } },
+        { terms: { target_pref_name: parameter.targets } },
+        { term: { standard_relation: '=' } },
+        { terms: { parent_molecule_chembl_id: ids } },
+      ],
+    },
+  },
+  aggs: { drugs: { terms: { field: 'parent_molecule_chembl_id', size: 5000 }, aggs: { median: { percentiles: { field: 'standard_value', percents: [50] } } } } },
+});
 
 const terms = (field, size) => ({ terms: { field, size } });
 
