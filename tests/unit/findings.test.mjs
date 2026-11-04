@@ -39,6 +39,8 @@ test('typeGroups counts drugs by molecule type, largest first', () => {
 test('propertyByDecade summarises a property for each decade with enough drugs', () => {
   const rows = propertyByDecade(fixture, 'mw', 2);
   assert.deepEqual(rows.map((r) => [r.decade, r.n, r.summary.median]), [[1950, 2, 280], [2010, 3, 470]]);
+  assert.deepEqual([rows[0].p5, rows[0].p95], [253, 307]);
+  assert.deepEqual(propertyByDecade(fixture, (d) => d.chem?.fsp3, 2).map((r) => r.summary.median), [0.45, 0.3]);
 });
 
 test('elementShares and elementByDecade measure how often an element appears', () => {
