@@ -13,11 +13,14 @@ ${row('fluvoxamine8', '1A2; 2C19 strong inhibitor', '3A moderate inhibitor5', '2
 ${row('rifampin', '', '', '', '3A; 2C19 strong inducer', '1A2, 2B6; 2C8; 2C9 moderate inducer', '', '', '', 'OATP1B inhibitor', '')}
 ${row('midazolam', '', '', '', '', '', '', '3A sensitive substrate', '', '', '')}
 ${row('atorvastatin', '', '', '', '', '', '', '', '3A moderate substrate', '', 'OATP1B1; OATP1B3 substrate')}
+${row('ritonavir14, 15,', '3A strong inhibitor', '', '', '', '', '', '', '', '', '')}
+${row('Pirtobrutinib', '', '', '', '', '', '', '', '', 'P-gp inhibitor', '')}
 </table><table><tr><th>Potency Category</th><th>Definitions</th></tr>${row('Strong Inhibitor', 'x')}</table>`;
 
 test('ddiRows reads the FDA interaction table into drugs, systems, roles and strengths', () => {
   const rows = ddiRows(HTML);
-  assert.equal(rows.length, 5);
+  assert.equal(rows.length, 7);
+  assert.deepEqual(rows.slice(5).map((r) => r.drug), ['ritonavir', 'pirtobrutinib']);
   assert.deepEqual(rows[0], {
     drug: 'clarithromycin',
     links: [
