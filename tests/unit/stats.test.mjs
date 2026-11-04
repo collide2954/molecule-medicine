@@ -121,6 +121,8 @@ test('hexbin counts points in pointy-top hexagons', () => {
   const small = bins.find((b) => b.n === 1);
   near(small.x, 3 * Math.sqrt(3));
   near(small.y, 6);
+  assert.deepEqual(big.members, [0, 1]);
+  assert.deepEqual(small.members, [2]);
 });
 
 test('geomean and mergeIntervals', () => {
