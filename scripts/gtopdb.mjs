@@ -61,7 +61,7 @@ export const approvedAffinities = (targets, interactions) => {
       const lo = number(r['Affinity Low']);
       const value = median ?? (hi !== null && lo !== null ? (hi + lo) / 2 : hi ?? lo);
       return {
-        ligand: stripTags(r.Ligand), target: stripTags(r.Target), type: typeOf.get(r['Target ID']) ?? null, units: r['Affinity Units'], value, action: r.Action,
+        ligand: stripTags(r.Ligand), target: stripTags(r.Target), type: typeOf.get(r['Target ID']) ?? null, units: r['Affinity Units'], value: value === null ? null : Math.round(value * 100) / 100, action: r.Action,
       };
     })
     .filter((r) => r.value !== null);
