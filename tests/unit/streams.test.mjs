@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { gzipSync, deflateRawSync, crc32 } from 'node:zlib';
+import { gzipSync } from 'node:zlib';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,6 +8,7 @@ import {
   lines, bufferLines, unzip, gzLines, fileLines, cacheName, anyLines,
 } from '../../scripts/streams.mjs';
 import { retry } from '../../src/lib.js';
+import { zipOf } from './fixtures.mjs';
 
 const collect = async (iterable) => {
   const out = [];
@@ -22,51 +23,14 @@ test('lines joins chunks split mid-line and drops carriage returns', async () =>
 });
 
 test('lines keeps multibyte characters split across chunks', async () => {
-  const bytes = Buffer.from('5 µg/mL\nok');
+  const bytes = Buffer.from('5 Âµg/mL\nok');
   const chunks = [bytes.subarray(0, 3), bytes.subarray(3)];
-  assert.deepEqual(await collect(lines(chunks)), ['5 µg/mL', 'ok']);
+  assert.deepEqual(await collect(lines(chunks)), ['5 Âµg/mL', 'ok']);
 });
 
 test('bufferLines walks a buffer line by line', () => {
   assert.deepEqual([...bufferLines(Buffer.from('a\r\nb\n\nc'))], ['a', 'b', '', 'c']);
 });
-
-export const zipOf = (files) => {
-  const locals = [];
-  const centrals = [];
-  let offset = 0;
-  for (const [name, text] of Object.entries(files)) {
-    const raw = Buffer.from(text);
-    const packed = deflateRawSync(raw);
-    const nameBytes = Buffer.from(name);
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(8, 8);
-    local.writeUInt32LE(crc32(raw), 14);
-    local.writeUInt32LE(packed.length, 18);
-    local.writeUInt32LE(raw.length, 22);
-    local.writeUInt16LE(nameBytes.length, 26);
-    const central = Buffer.alloc(46);
-    central.writeUInt32LE(0x02014b50, 0);
-    central.writeUInt16LE(8, 10);
-    central.writeUInt32LE(crc32(raw), 16);
-    central.writeUInt32LE(packed.length, 20);
-    central.writeUInt32LE(raw.length, 24);
-    central.writeUInt16LE(nameBytes.length, 28);
-    central.writeUInt32LE(offset, 42);
-    locals.push(local, nameBytes, packed);
-    centrals.push(central, nameBytes);
-    offset += 30 + nameBytes.length + packed.length;
-  }
-  const dir = Buffer.concat(centrals);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(Object.keys(files).length, 8);
-  end.writeUInt16LE(Object.keys(files).length, 10);
-  end.writeUInt32LE(dir.length, 12);
-  end.writeUInt32LE(offset, 16);
-  return Buffer.concat([...locals, dir, end]);
-};
 
 test('unzip inflates every entry by name', () => {
   const files = unzip(zipOf({ 'Products.txt': 'ApplNo~Form\n001234~TABLET\n', 'patent.txt': 'hello' }));
