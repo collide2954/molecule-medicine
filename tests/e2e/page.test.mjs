@@ -50,6 +50,7 @@ const CHAPTERS = {
   molecules: ['approved', 'druglike', 'properties', 'extremes', 'rings', 'atoms', 'stereo', 'stems', 'flags', 'atc'],
   targets: ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures'],
   bioactivity: ['record', 'potency', 'efficiency', 'agreement', 'kinetics', 'theory', 'combinations'],
+  pharmacokinetics: ['pk', 'simulator', 'ddi', 'cipa'],
   reference: ['decoder', 'sources'],
 };
 
@@ -330,6 +331,40 @@ test('the ALMANAC matrix lays out every drug pair and ranks the strongest', asyn
   assert.equal(await page.locator('#combo-chart [data-cell]').count(), n * n);
   assert.equal(await page.locator('#combo-top-chart [data-row]').count(), 20);
   assert.ok(await page.locator('#combo-dist-chart [data-bin]').count() >= 10);
+  await page.close();
+});
+
+test('PK histograms bin oral bioavailability, half-life and unbound fraction across approved drugs', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#f-chart [data-bin]').count(), 10);
+  assert.ok(await page.locator('#halflife-chart [data-bin]').count() >= 8);
+  assert.ok(await page.locator('#fu-chart [data-bin]').count() >= 5);
+  await page.close();
+});
+
+test('the PK simulator redraws its concentration curve when a slider moves', async () => {
+  const { page } = await open();
+  const curveBefore = await page.getAttribute('#pk-chart path.line', 'd');
+  await slide(page, '#pk-interval', 24);
+  assert.notEqual(await page.getAttribute('#pk-chart path.line', 'd'), curveBefore);
+  assert.match(await page.textContent('#pk-out'), /half-life[\s\S]*accumulat[\s\S]*steady state/);
+  await page.close();
+});
+
+test('interaction grids cross enzymes and transporters with roles, and perpetrators are ranked', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#ddi-chart [data-cell]').count(), 7 * 8);
+  assert.equal(await page.locator('#transporter-chart [data-cell]').count(), 10 * 2);
+  assert.equal(await page.locator('#perpetrator-chart [data-row]').count(), 20);
+  await page.close();
+});
+
+test('CiPA charts cross drugs with ion currents and rank hERG margins', async () => {
+  const { page } = await open();
+  const n = snapshot.cipa.rows.length;
+  const currents = Object.keys(snapshot.cipa.rows[0].margin).length;
+  assert.equal(await page.locator('#cipa-chart [data-cell]').count(), n * currents);
+  assert.equal(await page.locator('#herg-chart [data-row]').count(), n);
   await page.close();
 });
 
