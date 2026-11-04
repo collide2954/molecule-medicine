@@ -289,6 +289,18 @@ export const span125 = (lo, hi) => {
   return [Math.max(...all.filter((v) => v <= lo * (1 + 1e-9))), Math.min(...all.filter((v) => v >= hi * (1 - 1e-9)))];
 };
 
+export const clipLine = (slope, intercept, [x0, x1], [y0, y1]) => {
+  if (slope === 0) return intercept >= y0 && intercept <= y1 ? { x1: x0, y1: intercept, x2: x1, y2: intercept } : null;
+  const [a, b] = [(y0 - intercept) / slope, (y1 - intercept) / slope].sort((p, q) => p - q);
+  const from = Math.max(a, x0);
+  const to = Math.min(b, x1);
+  if (from > to) return null;
+  const t = (v) => Number(v.toPrecision(12));
+  return {
+    x1: t(from), y1: t(slope * from + intercept), x2: t(to), y2: t(slope * to + intercept),
+  };
+};
+
 export const components = (n, edges) => {
   const parent = Array.from({ length: n }, (_, i) => i);
   const find = (i) => {
