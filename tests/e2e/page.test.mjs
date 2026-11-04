@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
 import { start } from '../../scripts/serve.mjs';
 import snapshot from '../../src/snapshot.js';
-import { EXAMPLES, LANDMARKS } from '../../src/facts.js';
+import { EXAMPLES, LANDMARKS, GENETIC_SUPPORT } from '../../src/facts.js';
 import { exact } from '../../src/lib.js';
 import {
   findings, propertyByDecade, ringCounts, stemCounts, typeGroups, atcGroups,
 } from '../../src/findings.js';
+import {
+  targetHierarchy, familyCounts, familyActions, topTargets, networkGraph, gtopdbRows, affinityByType,
+} from '../../src/targets.js';
 
 let server;
 let browser;
@@ -44,6 +47,7 @@ const tipLinesOf = (page) => page.$$eval('#tip > *', (els) => els.map((e) => e.t
 
 const CHAPTERS = {
   molecules: ['approved', 'druglike', 'properties', 'extremes', 'rings', 'atoms', 'stereo', 'stems', 'flags', 'atc'],
+  targets: ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures'],
   reference: ['decoder', 'sources'],
 };
 
@@ -158,6 +162,102 @@ test('flag, route and ATC charts list their rows and tiles', async () => {
   await page.hover(`#atc-chart [data-key="${atcGroups(snapshot)[0].code}"]`);
   assert.match(await page.textContent('#tip'), /drugs/);
   assert.equal(await page.locator('#atc3-chart [data-row]').count(), 20);
+  await page.close();
+});
+
+test('the target classes icicle nests protein classes and the family bars rank them', async () => {
+  const { page } = await open();
+  const tree = targetHierarchy(snapshot);
+  assert.equal(await page.locator('#class-chart [data-depth="1"]').count(), tree.children.length);
+  assert.ok(await page.locator('#class-chart [data-depth="3"]').count() > 10);
+  await page.hover(`#class-chart [data-class="${tree.children[0].name}"]`);
+  assert.match(await page.textContent('#tip'), /drug–target pairs[\s\S]*approved drugs[\s\S]*targets/);
+  assert.equal(await page.locator('#family-chart [data-row]').count(), familyCounts(snapshot).length);
+  await page.close();
+});
+
+test('the actions grid crosses target families with actions', async () => {
+  const { page } = await open();
+  const fa = familyActions(snapshot);
+  assert.equal(await page.locator('#action-chart [data-cell]').count(), fa.families.length * fa.actions.length);
+  await page.hover('#action-chart [data-cell="0:0"]');
+  assert.match(await page.textContent('#tip'), /drug–target pairs/);
+  assert.ok(await page.locator('#action-count-chart [data-row]').count() >= 10);
+  await page.close();
+});
+
+test('the most-drugged targets are ranked and drugs per target are binned', async () => {
+  const { page } = await open();
+  const [top] = topTargets(snapshot, 1);
+  assert.equal(await page.locator('#drugged-chart [data-row]').count(), 25);
+  await page.hover(`#drugged-chart [data-row="${top.id}"]`);
+  assert.match(await page.textContent('#tip'), new RegExp(`${top.drugs} approved drugs`));
+  assert.equal(await page.locator('#per-target-chart [data-k]').count(), 7);
+  assert.equal(await page.locator('#per-drug-chart [data-k]').count(), 6);
+  await page.close();
+});
+
+test('the network draws every drug and target once with their links', async () => {
+  const { page } = await open();
+  const g = networkGraph(snapshot);
+  assert.equal(await page.locator('#network-chart circle.node').count(), g.nodes.length);
+  assert.equal(await page.locator('#network-chart path.links').count(), 1);
+  const hub = g.nodes.reduce((a, b) => (b.degree > a.degree ? b : a));
+  await page.focus('#network-chart svg');
+  await page.keyboard.press('Home');
+  assert.match(await page.textContent('#tip'), new RegExp(`${exact(hub.degree)} links`));
+  await page.close();
+});
+
+test('GtoPdb bars split target types by ligand and boxes show approved affinities', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#gtopdb-chart [data-row]').count(), gtopdbRows(snapshot).length);
+  assert.equal(await page.locator('#gtopdb-chart .legend li').count(), 3);
+  assert.equal(await page.locator('#affinity-chart [data-type]').count(), affinityByType(snapshot).length);
+  await page.hover('#affinity-chart [data-type="gpcr"]');
+  assert.match(await page.textContent('#tip'), /median[\s\S]*nM/);
+  assert.ok(await page.locator('#orphan-chart [data-row]').count() >= 4);
+  assert.ok(await page.locator('#endogenous-chart [data-row]').count() >= 3);
+  await page.close();
+});
+
+test('enzyme, EC and channel charts list the classes approved drugs act on', async () => {
+  const { page } = await open();
+  assert.ok(await page.locator('#enzyme-chart [data-row]').count() >= 8);
+  assert.equal(await page.locator('#ec-chart [data-row]').count(), 7);
+  assert.ok(await page.locator('#channel-chart [data-row]').count() >= 8);
+  await page.close();
+});
+
+test('the genetic support forest plot is marked fixed and ClinVar bins compare target genes with all genes', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#rs-chart [data-row]').count(), GENETIC_SUPPORT.sources.length + GENETIC_SUPPORT.areas.length);
+  assert.equal(await page.locator('#rs-chart line.ref').count(), 1);
+  await page.hover('#rs-chart [data-row="OMIM"]');
+  assert.match(await page.textContent('#tip'), /3\.67[\s\S]*3\.07[\s\S]*4\.37/);
+  assert.match(await page.textContent('#genetics'), /Fixed table/);
+  assert.equal(await page.locator('#clinvar-chart [data-bin]').count(), 5);
+  await page.close();
+});
+
+test('the kinome matrix draws every measured Kd and the selectivity scatter every inhibitor', async () => {
+  const { page } = await open();
+  const K = snapshot.kinome;
+  assert.equal(await page.locator('#kinome-chart rect.cell').count(), K.pkd.flat().filter((v) => v !== null).length);
+  assert.ok(await page.locator('#kinome-chart text.group-lab').count() >= 8);
+  await page.focus('#kinome-chart svg');
+  await page.keyboard.press('Home');
+  assert.match(await page.textContent('#tip'), /Kd|no binding/);
+  assert.equal(await page.locator('#selectivity-chart circle.pt').count(), K.inhibitors.length);
+  await page.close();
+});
+
+test('structure charts stack PDB releases by method and count GPCR structures', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#pdb-chart path[data-key]').count(), 4);
+  const G = snapshot.structures.gpcrdb;
+  assert.equal(await page.locator('#gpcr-chart [data-row]').count(), Object.keys(G.classes).length);
+  assert.equal(await page.locator('#gpcr-years-chart path[data-key]').count(), Object.keys(G.methods).length);
   await page.close();
 });
 
