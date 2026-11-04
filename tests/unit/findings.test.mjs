@@ -70,7 +70,7 @@ test('findings state the molecules part as numbers', () => {
   assert.equal(f.approved, 'ChEMBL 37 counts 7 approved drugs; 5 are small molecules and 1 an antibody or antibody–drug conjugate');
   assert.equal(f.druglike, '60% of approved small molecules break none of Lipinski’s four rules; 20% break two or more');
   assert.equal(f.properties, 'The median small molecule first approved in the 2010s weighs 470 Da; in the 1950s, 280 Da');
-  assert.equal(f.extremes, 'Approved small molecules run from A, 250 Da, to E, 500 Da');
+  assert.equal(f.extremes, 'Approved small molecules run from a, 250 Da, to e, 500 Da');
   assert.equal(f.rings, 'Benzene is in 3 approved small molecules, 60% of those with a structure; piperidine is in 2');
   assert.equal(f.atoms, 'Fluorine is in 40% of approved small molecules, and in 66.7% of those first approved in the 2010s');
   assert.equal(f.stereo, 'Of small molecules first approved since 2010, 66.7% are single stereoisomers and 0% racemates');
