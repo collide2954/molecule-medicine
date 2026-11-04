@@ -231,7 +231,15 @@ const RING_NAMES = {
   '5|aromatic|ONN|1,3,4': '1,3,4-oxadiazole', '5|aromatic|ONN|1,2,4': '1,2,4-oxadiazole', '5|aromatic|SNN|1,3,4': '1,3,4-thiadiazole', '5|saturated||': 'cyclopentane',
   '5|saturated|N|1': 'pyrrolidine', '5|saturated|O|1': 'tetrahydrofuran', '5|saturated|S|1': 'thiolane', '5|saturated|NN|1,3': 'imidazolidine', '5|saturated|ON|1,3': 'oxazolidine',
   '5|saturated|SN|1,3': 'thiazolidine', '4|saturated||': 'cyclobutane', '4|saturated|N|1': 'azetidine', '3|saturated||': 'cyclopropane', '3|saturated|O|1': 'oxirane', '3|saturated|N|1': 'aziridine',
-  '7|saturated|N|1': 'azepane', '7|saturated||': 'cycloheptane',
+  '7|saturated|N|1': 'azepane', '7|saturated||': 'cycloheptane', '6|aromatic|O|1': 'pyranone', '6|partly unsaturated|SN|1,3': 'dihydrothiazine',
+  '7|partly unsaturated|NN|1,4': '1,4-diazepine', '5|saturated|OO|1,3': '1,3-dioxolane',
+};
+
+const lactam = (mol, ring) => {
+  const n = ring.find((i) => mol.atoms[i].el === 'N');
+  const k = ring.indexOf(n);
+  const besideN = [ring[(k + 1) % ring.length], ring[(k + ring.length - 1) % ring.length]];
+  return besideN.some((c) => mol.bonds.some((b) => b.order === 2 && (b.a === c || b.b === c) && mol.atoms[b.a === c ? b.b : b.a].el === 'O' && !ring.includes(b.a === c ? b.b : b.a)));
 };
 
 const locants = (els, start, dir) => {
@@ -277,8 +285,8 @@ export const ringName = (mol, ring, aromatic) => {
   const formula = best ? order.map(elementOf).join('') : '';
   const positions = best ? best.map(([, p]) => p).join(',') : '';
   const key = `${ring.length}|${state}|${formula}|${positions}`;
+  if (key === '4|saturated|N|1' && lactam(mol, ring)) return 'β-lactam';
   if (RING_NAMES[key]) return RING_NAMES[key];
-  if (ring.length === 4 && state === 'saturated' && formula === 'N') return 'azetidine';
   const counts = {};
   for (const e of hetero) counts[e] = (counts[e] ?? 0) + 1;
   const tag = Object.entries(counts).sort((a, b) => rank(a[0]) - rank(b[0])).map(([e, n]) => `${e}${n}`).join('') || 'carbocyclic';

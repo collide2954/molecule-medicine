@@ -108,7 +108,7 @@ test('ringName recognises beta-lactams, cephem and benzodiazepine rings, pyranon
   const lactam = molOf([['N', 0, 0], ['C', 1, 0], ['C', 1, 1], ['C', 0, 1], ['O', -0.8, 1.6]], [...cycle(4), [4, 5, 2]]);
   assert.equal(first(lactam), 'β-lactam');
   assert.equal(first(molOf([['N'], ['C'], ['C'], ['C']], cycle(4))), 'azetidine');
-  assert.equal(first(hexagon(['S', 'C', 'C', 'N', 'C', 'C'], [1, 1, 1, 1, 2, 1])), 'dihydrothiazine');
+  assert.equal(first(hexagon(['S', 'C', 'N', 'C', 'C', 'C'], [1, 1, 1, 2, 1, 1])), 'dihydrothiazine');
   const diazepine = molOf(Array.from({ length: 7 }, (_, i) => [i === 0 || i === 3 ? 'N' : 'C', Math.cos(i), Math.sin(i)]), cycle(7, 1, [1, 1, 2, 1, 1, 2, 1]));
   assert.equal(first(diazepine), '1,4-diazepine');
   const pyranone = molOf([...['O', 'C', 'C', 'C', 'C', 'C'].map((el, i) => [el, Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]), ['O', 2, 1]], [...cycle(6, 1, [1, 1, 2, 1, 2, 1]), [2, 7, 2]]);
