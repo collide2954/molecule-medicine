@@ -22,8 +22,12 @@ const systemsIn = (text, transporter) => [...new Set([...String(text).matchAll(t
 export const ddiRows = (html) => {
   const table = readTables(html).find((t) => String(t.head[0] ?? '').startsWith('Drug or Other Substance'));
   if (!table) return [];
+  const clean = (name) => {
+    const s = name.replace(/[\d,\s]+$/, '').trim();
+    return s.length > 1 && s[1] === s[1].toLowerCase() ? `${s[0].toLowerCase()}${s.slice(1)}` : s;
+  };
   return table.rows.filter((r) => r[0]).map((r) => ({
-    drug: r[0].replace(/\d+$/, '').trim(),
+    drug: clean(r[0]),
     links: table.head.slice(1).flatMap((h, j) => {
       const [role, strength] = COLUMNS[h] ?? [];
       if (!role || !r[j + 1]) return [];
