@@ -472,7 +472,7 @@ const NIH_ACTIVITIES = {
   R37: 'method to extend research in time (MERIT) award', R41: 'small business technology transfer, phase I', R42: 'small business technology transfer, phase II', R43: 'small business innovation research, phase I',
   R44: 'small business innovation research, phase II', K01: 'mentored research scientist development award', K08: 'mentored clinical scientist development award', K23: 'mentored patient-oriented research career award',
   K99: 'pathway to independence award', F30: 'individual predoctoral fellowship for MD/PhD students', F31: 'individual predoctoral fellowship', F32: 'individual postdoctoral fellowship', T32: 'institutional research training grant',
-  U01: 'research project cooperative agreement', U19: 'research program cooperative agreement', U54: 'specialized center cooperative agreement', P01: 'research program project grant', P30: 'center core grant', P50: 'specialized center grant',
+  U01: 'research project cooperative agreement', U19: 'research program cooperative agreement', U24: 'resource-related research project cooperative agreement', U54: 'specialized center cooperative agreement', P01: 'research program project grant', P30: 'center core grant', P50: 'specialized center grant',
 };
 
 const NIH_INSTITUTES = {
