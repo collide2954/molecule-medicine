@@ -100,6 +100,7 @@ const INTERACTIONS = [
   '"β<sub>2</sub>-adrenoceptor","28","Rat","558","salbutamol","Synthetic organic","true","Agonist","Partial agonist","false","true","pKi","6.1","",""',
   '"COX-1","1375","Human","4139","aspirin","Synthetic organic","true","Inhibitor","Irreversible inhibition","false","true","pIC50","5.3","",""',
   '"COX-1","1375","Human","5000","tool compound","Synthetic organic","false","Inhibitor","Inhibition","false","false","-","","",""',
+  '"COX-1","1375","Human","5001","ibuprofen","Synthetic organic","true","Inhibitor","Inhibition","false","true","pIC50","","5.300000190734863","4.900000095367432"',
 ].join('\n');
 
 test('gtopdbVersion reads the release from the banner line', () => {
@@ -121,13 +122,14 @@ test('gtopdbSummary counts targets by type with any, approved and endogenous hum
   assert.deepEqual(s.types.enzyme, { targets: 1, ligand: 1, approved: 1, endogenous: 0, orphans: 0 });
   assert.deepEqual(s.types.lgic, { targets: 1, ligand: 0, approved: 0, endogenous: 0, orphans: 0 });
   assert.deepEqual(s.endogenous, { Metabolite: 1 });
-  assert.equal(s.interactions, 4);
+  assert.equal(s.interactions, 5);
 });
 
-test('approvedAffinities lists approved ligands at their human primary targets with a single value', () => {
+test('approvedAffinities lists approved ligands at their human primary targets with one value to two decimals', () => {
   assert.deepEqual(approvedAffinities(gtopdbTargets(TARGETS), INTERACTIONS), [
     { ligand: 'salbutamol', target: 'β2-adrenoceptor', type: 'gpcr', units: 'pKi', value: 5.83, action: 'Partial agonist' },
     { ligand: 'aspirin', target: 'COX-1', type: 'enzyme', units: 'pIC50', value: 5.3, action: 'Irreversible inhibition' },
+    { ligand: 'ibuprofen', target: 'COX-1', type: 'enzyme', units: 'pIC50', value: 5.1, action: 'Inhibition' },
   ]);
 });
 
