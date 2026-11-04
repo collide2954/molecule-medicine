@@ -13,7 +13,9 @@ export const DAVIS_FIELDS = [
   'molecule_chembl_id', 'molecule_pref_name', 'target_chembl_id', 'target_pref_name', 'target_organism', 'assay_chembl_id', 'assay_description', 'assay_variant_mutation', 'pchembl_value', 'standard_relation', 'standard_value', 'standard_type',
 ];
 
-export const DAVIS_DOCUMENT = 'CHEMBL1908390';
+export const DOCUMENTS = { davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', k4dd: 'CHEMBL3885741' };
+
+export const DAVIS_DOCUMENT = DOCUMENTS.davis;
 
 export const FILES = {
   chemblStatus: `${CHEMBL}status.json`,
@@ -30,6 +32,38 @@ export const FILES = {
   gpcrdb: 'https://gpcrdb.org/services/structure/',
   clinvarGenes: 'https://ftp.ncbi.nlm.nih.gov/pub/clinvar/tab_delimited/gene_specific_summary.txt',
   hgncCoding: 'https://storage.googleapis.com/public-download-files/hgnc/tsv/tsv/locus_types/gene_with_protein_product.txt',
+  chemblSearch: 'https://www.ebi.ac.uk/chembl/elk/es/chembl_activity/_search',
+  chemblSources: `${CHEMBL}source.json?limit=1000`,
+  almanac: 'https://wiki.nci.nih.gov/download/attachments/338237347/ComboDrugGrowth_Nov2017.zip',
+  almanacNames: 'https://wiki.nci.nih.gov/download/attachments/338237347/ComboCompoundNames_small.txt',
+};
+
+const terms = (field, size) => ({ terms: { field, size } });
+
+export const ACTIVITY_AGGS = {
+  size: 0,
+  track_total_hits: true,
+  aggs: {
+    types: terms('standard_type', 30),
+    assay: terms('assay_type', 10),
+    year: { histogram: { field: 'document_year', interval: 1, min_doc_count: 1 } },
+    pchembl: { histogram: { field: 'pchembl_value', interval: 0.5, min_doc_count: 1 } },
+    source: terms('src_id', 100),
+    relation: terms('standard_relation', 10),
+    withp: { filter: { exists: { field: 'pchembl_value' } } },
+    phantom: { filter: { bool: { must: [{ terms: { standard_type: ['kon', 'k_off'] } }], must_not: [{ exists: { field: 'standard_value' } }] } } },
+    duplicates: terms('potential_duplicate', 5),
+    validity: terms('data_validity_comment', 12),
+    formats: terms('bao_label', 12),
+    potent: {
+      filter: { exists: { field: 'pchembl_value' } },
+      aggs: {
+        types: { ...terms('standard_type', 6), aggs: { bins: { histogram: { field: 'pchembl_value', interval: 0.5, min_doc_count: 1 } } } },
+        molecules: terms('molecule_pref_name', 15),
+        organisms: terms('target_organism', 12),
+      },
+    },
+  },
 };
 
 export const RCSB_YEARS = {
