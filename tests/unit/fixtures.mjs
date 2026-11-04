@@ -221,6 +221,55 @@ export const PART2 = {
   },
 };
 
+export const PART3 = {
+  activities: {
+    total: 1000,
+    withPchembl: 300,
+    phantomKinetics: 100,
+    duplicates: 20,
+    types: [{ type: 'Potency', n: 300 }, { type: 'IC50', n: 250 }, { type: 'Ki', n: 100 }, { type: 'k_off', n: 50 }, { type: 'kon', n: 50 }],
+    assays: [{ type: 'F', n: 600 }, { type: 'B', n: 300 }, { type: 'A', n: 100 }],
+    years: [[2019, 300], [2020, 700]],
+    pchembl: [[5, 100], [6, 100], [7, 60], [8, 40]],
+    sources: [{ id: 1, name: 'Scientific Literature', n: 400 }, { id: 7, name: 'PubChem BioAssays', n: 350 }, { id: 37, name: 'BindingDB Patent Bioactivity Data', n: 250 }],
+    relations: [{ relation: '=', n: 800 }, { relation: '>', n: 200 }],
+    validity: [{ comment: 'Outside typical range', n: 15 }],
+    formats: [{ format: 'cell-based format', n: 500 }, { format: 'single protein format', n: 300 }],
+    byType: [{ type: 'IC50', n: 200, bins: [[5, 80], [6, 70], [7, 50]] }, { type: 'Ki', n: 100, bins: [[6, 30], [7, 40], [8, 30]] }],
+    molecules: [{ name: 'DOXORUBICIN', n: 9 }, { name: 'STAUROSPORINE', n: 7 }],
+    organisms: [{ organism: 'Homo sapiens', n: 250 }],
+  },
+  agreement: {
+    document: 'CHEMBL1150977',
+    pairs: [[8, 7.5], [9, 9.5], [7, 6.5], [6, 6.5]],
+    counts: {
+      both: 4, davisOnly: 1, karamanOnly: 1, neither: 4,
+    },
+    ambiguous: 0,
+    molecules: 2,
+  },
+  kinetics: {
+    document: 'CHEMBL3885741',
+    pairs: [
+      {
+        molecule: 'M1', name: 'RIVAROXABAN', target: 'T1', targetName: 'Coagulation factor X', kon: 10000000, koff: 0.01, n: 1,
+      },
+      {
+        molecule: 'M2', name: null, target: 'T1', targetName: 'Coagulation factor X', kon: 100000, koff: 0.0001, n: 1,
+      },
+      {
+        molecule: 'M3', name: 'ZM-241385', target: 'T2', targetName: 'Adenosine receptor A2a', kon: 1000000, koff: 0.001, n: 2,
+      },
+    ],
+  },
+  almanac: {
+    drugs: [{ nsc: '740', name: 'Methotrexate' }, { nsc: '752', name: 'Thioguanine' }, { nsc: '3088', name: 'Chlorambucil' }],
+    pairs: [[0, 1, 5, 60], [0, 2, -3, 58], [1, 2, 12, 60]],
+    cells: 60,
+    wells: 1000,
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {

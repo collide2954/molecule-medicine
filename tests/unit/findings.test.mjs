@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import snapshot from '../../src/snapshot.js';
-import { PART2 } from './fixtures.mjs';
+import { PART2, PART3 } from './fixtures.mjs';
 import {
   findings, smallMolecules, decadeOf, propertyByDecade, elementShares, elementByDecade, ringCounts, chiralityByDecade, stemCounts, flagCounts, atcGroups, typeGroups, systemName,
 } from '../../src/findings.js';
@@ -26,6 +26,7 @@ const fixture = {
     drug('g', { type: 'Protein', year: null, p: null, chem: null, mol: null, atc: [] }),
   ],
   ...PART2,
+  ...PART3,
 };
 
 test('smallMolecules and decadeOf group approved small molecules by first approval', () => {
@@ -113,7 +114,7 @@ test('findings state the molecules part as numbers', () => {
 test('the real snapshot gives every finding as plain text without filler words', () => {
   const f = findings(snapshot);
   assert.ok(Object.keys(f).length >= 20);
-  for (const key of ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures']) assert.ok(f[key], key);
+  for (const key of ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures', 'record', 'potency', 'efficiency', 'agreement', 'kinetics', 'combinations']) assert.ok(f[key], key);
   for (const [key, text] of Object.entries(f)) {
     assert.equal(typeof text, 'string', key);
     assert.ok(text.length > 10 && text.length < 140, `${key}: ${text}`);

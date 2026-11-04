@@ -1,8 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  exact, compact, pct, usd, decimal, wordy, ordinal, sci, mlog, signed, toCsv, molar, pToMolar, molarToP, perMl, duration, daltons, times, price, longDate, yearOf,
+  exact, compact, pct, usd, decimal, wordy, ordinal, sci, mlog, signed, toCsv, molar, pToMolar, molarToP, perMl, duration, daltons, times, price, longDate, yearOf, seconds, pow10,
 } from '../../src/lib.js';
+
+test('seconds names a span in seconds, minutes, hours or days', () => {
+  assert.equal(seconds(1.4), '1.4 s');
+  assert.equal(seconds(42), '42 s');
+  assert.equal(seconds(100), '1.7 min');
+  assert.equal(seconds(1800), '30 min');
+  assert.equal(seconds(10000), '2.8 h');
+  assert.equal(seconds(500000), '5.8 days');
+});
+
+test('pow10 writes powers of ten with superscripts', () => {
+  assert.equal(pow10(6), '10⁶');
+  assert.equal(pow10(-3), '10⁻³');
+  assert.equal(pow10(0), '10⁰');
+  assert.equal(pow10(10), '10¹⁰');
+});
 
 test('exact groups thousands with commas', () => {
   assert.equal(exact(24527044), '24,527,044');
