@@ -26,11 +26,21 @@ const SYSTEMS = {
 const STEROID = (sorted) => sorted.length === 4 && sorted.filter((r) => r === 'cyclopentane').length === 1
   && sorted.filter((r) => r !== 'cyclopentane').every((r) => /^(cyclohexane|benzene|6-ring, carbocyclic, partly unsaturated)$/.test(r));
 
-export const systemName = (rings) => {
+const OXO = {
+  'benzene|pyridine': () => 'quinolone', 'imidazole|pyrimidine': (n) => (n >= 2 ? 'xanthine' : 'purinone'), '1,4-diazepine|benzene': () => '1,4-benzodiazepin-2-one', 'benzene|pyrrole': () => 'oxindole',
+};
+
+const KEEPS_OXO = new Set(['dihydrothiazine|β-lactam', 'thiazolidine|β-lactam']);
+
+const oxoGroups = (n) => (n === 1 ? 'an oxo group' : `${n} oxo groups`);
+
+export const systemName = (rings, exo = 0) => {
   const sorted = [...rings].sort();
-  if (sorted.length === 1) return sorted[0];
+  const key = sorted.join('|');
   if (STEROID(sorted)) return 'steroid nucleus';
-  return SYSTEMS[sorted.join('|')] ?? sorted.join(' + ');
+  if (exo && OXO[key]) return OXO[key](exo);
+  const base = sorted.length === 1 ? sorted[0] : SYSTEMS[key] ?? sorted.join(' + ');
+  return exo && !KEEPS_OXO.has(key) && !sorted.includes('β-lactam') ? `${base}, with ${oxoGroups(exo)}` : base;
 };
 
 export const release = (snap) => String(snap.chembl.release).replace('_', ' ');

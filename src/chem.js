@@ -306,23 +306,27 @@ export const systemKeys = (mol) => {
   const rs = rings(mol);
   const aromatic = aromaticRings(mol);
   return ringSystems(mol).map((system) => {
-    const inside = new Set(system.atoms);
+    const core = new Set(system.atoms);
+    const exocyclic = mol.bonds.filter((b) => b.order === 2 && core.has(b.a) !== core.has(b.b)).map((b) => (core.has(b.a) ? b.b : b.a));
+    const atoms = [...new Set([...system.atoms, ...exocyclic])].sort((a, b) => a - b);
+    const inside = new Set(atoms);
     const aromaticAtoms = new Set(system.rings.filter((i) => aromatic[i]).flatMap((i) => rs[i]));
     const sameAromatic = (a, b) => system.rings.some((i) => aromatic[i] && rs[i].includes(a) && rs[i].includes(b));
     const edges = mol.bonds.filter((b) => inside.has(b.a) && inside.has(b.b)).map((b) => ({ ...b, label: sameAromatic(b.a, b.b) ? 'a' : String(b.order) }));
-    let labels = new Map(system.atoms.map((i) => [i, `${mol.atoms[i].el}${aromaticAtoms.has(i) ? 'a' : ''}${mol.atoms[i].charge || ''}`]));
+    let labels = new Map(atoms.map((i) => [i, `${mol.atoms[i].el}${aromaticAtoms.has(i) ? 'a' : ''}${core.has(i) ? '' : 'x'}${mol.atoms[i].charge || ''}`]));
     for (let round = 0; round < 3; round += 1) {
       const next = new Map();
-      for (const i of system.atoms) {
+      for (const i of atoms) {
         const around = edges.filter((e) => e.a === i || e.b === i).map((e) => `${e.label}${labels.get(e.a === i ? e.b : e.a)}`).sort().join(',');
         next.set(i, fnv(`${labels.get(i)}(${around})`));
       }
       labels = next;
     }
     return {
-      key: `${system.atoms.length}.${system.rings.length}.${fnv([...labels.values()].sort().join('|'))}`,
-      atoms: system.atoms,
+      key: `${atoms.length}.${system.rings.length}.${fnv([...labels.values()].sort().join('|'))}`,
+      atoms,
       rings: system.rings.map((i) => ringName(mol, rs[i], aromatic[i])),
+      exo: exocyclic.filter((i) => mol.atoms[i].el === 'O').length,
     };
   });
 };

@@ -70,7 +70,7 @@ export const ringSystemTable = (drugs, top) => {
     for (const s of systemKeys(unpackMol(d.mol))) {
       if (seen.has(s.key)) continue;
       seen.add(s.key);
-      if (!table.has(s.key)) table.set(s.key, { key: s.key, n: 0, example: d.id, atoms: s.atoms, rings: s.rings });
+      if (!table.has(s.key)) table.set(s.key, { key: s.key, n: 0, example: d.id, atoms: s.atoms, rings: s.rings, exo: s.exo });
       table.get(s.key).n += 1;
     }
   }
