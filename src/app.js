@@ -35,6 +35,7 @@ const h = (tag, props = {}, ...kids) => {
 const ext = (href, text, props = {}) => h('a', { href, target: '_blank', rel: 'noopener', ...props }, text);
 const fill = (sel, ...nodes) => $(sel).replaceChildren(...nodes);
 const CAT = ['var(--s2)', 'var(--s1)', 'var(--s4)', 'var(--s3)', 'var(--s5)', 'var(--data)', 'var(--data-2)', 'var(--ink-2)'];
+const TILES = ['var(--s2)', 'var(--s1)', 'var(--s4)', 'var(--s3)', 'var(--s5)', 'var(--data)'];
 const SITE = 'https://collide2954.github.io/basic-clinical-pharm/';
 const REPO = 'https://github.com/collide2954/basic-clinical-pharm';
 const chemblUrl = (id) => `https://www.ebi.ac.uk/chembl/explore/compound/${id}`;
@@ -445,7 +446,7 @@ const renderAtc = () => {
   $('#atc-dek').textContent = `${exact(multi)} approved drugs sit in more than one anatomical group, such as a steroid used on the skin and by mouth. The largest pharmacological subgroup is ${ranked[0].code}, ${soften(ranked[0].name)}, with ${exact(ranked[0].n)} drugs.`;
   treemap({
     mount: $('#atc-chart'),
-    items: groups.map((g, i) => ({ key: g.code, label: `${g.code} ${capital(soften(g.name))}`, sub: `${exact(g.n)} drugs`, value: g.n, color: CAT[i % CAT.length] })),
+    items: groups.map((g, i) => ({ key: g.code, label: `${g.code} ${capital(soften(g.name))}`, sub: `${exact(g.n)} drugs`, value: g.n, color: TILES[i % TILES.length] })),
     aria: 'Approved drugs by ATC anatomical main group',
     describe: (it) => tipLines(`${exact(it.value)} drugs`, `${it.key}, ${soften(snapshot.chembl.atc[it.key] ?? it.key)}`, pct(it.value / D.length)),
   });
