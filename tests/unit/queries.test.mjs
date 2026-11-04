@@ -55,7 +55,9 @@ test('the bioactivity queries aggregate ChEMBL activities and fetch K4DD, Karama
   for (const name of ['types', 'assay', 'year', 'pchembl', 'source', 'relation', 'withp', 'phantom', 'duplicates', 'validity', 'formats', 'potent']) assert.ok(ACTIVITY_AGGS.aggs[name], name);
   assert.equal(ACTIVITY_AGGS.aggs.pchembl.histogram.interval, 0.5);
   for (const name of ['types', 'molecules', 'organisms']) assert.ok(ACTIVITY_AGGS.aggs.potent.aggs[name], name);
-  assert.deepEqual(DOCUMENTS, { davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', k4dd: 'CHEMBL3885741' });
+  assert.deepEqual(DOCUMENTS, {
+    davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', klaeger: 'CHEMBL3991601', k4dd: 'CHEMBL3885741',
+  });
   assert.match(FILES.almanac, /wiki\.nci\.nih\.gov\/download\/attachments\/338237347\/ComboDrugGrowth_Nov2017\.zip$/);
   assert.match(FILES.almanacNames, /ComboCompoundNames_small\.txt$/);
 });

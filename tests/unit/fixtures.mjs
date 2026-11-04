@@ -240,13 +240,24 @@ export const PART3 = {
     organisms: [{ organism: 'Homo sapiens', n: 250 }],
   },
   agreement: {
-    document: 'CHEMBL1150977',
-    pairs: [[8, 7.5], [9, 9.5], [7, 6.5], [6, 6.5]],
-    counts: {
-      both: 4, davisOnly: 1, karamanOnly: 1, neither: 4,
+    karaman: {
+      document: 'CHEMBL1150977',
+      pairs: [[8, 8], [9, 9], [7, 6.5]],
+      counts: {
+        both: 3, davisOnly: 0, karamanOnly: 0, neither: 2,
+      },
+      ambiguous: 0,
+      molecules: 2,
     },
-    ambiguous: 0,
-    molecules: 2,
+    klaeger: {
+      document: 'CHEMBL3991601',
+      pairs: [[8, 7.5], [9, 9.5], [7, 6.5], [6, 6.5]],
+      counts: {
+        both: 4, davisOnly: 1, karamanOnly: 1, neither: 4,
+      },
+      ambiguous: 0,
+      molecules: 2,
+    },
   },
   kinetics: {
     document: 'CHEMBL3885741',

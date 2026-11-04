@@ -44,15 +44,18 @@ test('efficiencyPoints joins approved-drug affinities to heavy atoms and ALogP f
   ]);
 });
 
-test('agreementStats gives the bias, limits of agreement and rank correlation of repeated Kd values', () => {
-  const s = agreementStats(snap);
+test('agreementStats gives the bias, limits of agreement, rank correlation and repeats of paired Kd values', () => {
+  const s = agreementStats(snap, 'klaeger');
   assert.equal(s.n, 4);
   assert.equal(s.bias, 0);
   assert.equal(s.sd, 0.58);
   assert.deepEqual([s.lo, s.hi], [-1.13, 1.13]);
   assert.equal(s.within, 1);
+  assert.equal(s.withinTenfold, 1);
   assert.equal(s.spearman, 0.95);
   assert.equal(s.discordant, 2);
+  assert.equal(s.identical, 0);
+  assert.equal(agreementStats(snap, 'karaman').identical, 2);
 });
 
 test('kineticRows adds affinity and residence time to each kinetic pair', () => {
@@ -87,7 +90,7 @@ test('bioFindings state the bioactivity part as numbers', () => {
   assert.equal(f.record, 'ChEMBL 37 holds 1,000 activity records; 40% come from the literature and 30% carry a pChEMBL value');
   assert.equal(f.potency, 'Measured potencies in ChEMBL centre on pChEMBL 6 to 6.5; approved drugs bind their primary targets at a median of 8.1');
   assert.equal(f.efficiency, 'Approved drugs have a median ligand efficiency of 0.42 kcal/mol per heavy atom at their primary targets; 33.3% fall below 0.3');
-  assert.equal(f.agreement, 'Repeated on the same platform, 100% of 4 kinase Kd values agree within half a log unit; 2 pairs bound in only one run');
+  assert.equal(f.agreement, 'Kinobeads and KINOMEscan put 100% of 4 shared kinase Kd values within tenfold of each other; 2 pairs bound in one assay and not the other');
   assert.equal(f.kinetics, 'In K4DD, residence times run from 1.7 min to 2.8 h across 3 compound–target pairs on 2 targets');
   assert.equal(f.combinations, 'In NCI-ALMANAC, thioguanine with chlorambucil beats the Bliss expectation most, by 12 points; 66.7% of 3 pairs score above zero');
 });

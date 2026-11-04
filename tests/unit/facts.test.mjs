@@ -28,6 +28,11 @@ test('the targets part cites the databases and papers it draws on', () => {
   for (const key of ['minikel2024', 'nelson2015']) assert.equal(SOURCE_TITLES[key]?.[0], 'Trials and development', key);
 });
 
+test('the bioactivity part cites its datasets and the theory it draws', () => {
+  for (const key of ['klaeger2017', 'k4dd', 'copeland2006', 'black1983', 'schild1949', 'cheng1973', 'bliss1939', 'holbeck2017']) assert.equal(SOURCE_TITLES[key]?.[0], 'Pharmacology', key);
+  for (const key of ['hopkins2004', 'leeson2007']) assert.equal(SOURCE_TITLES[key]?.[0], 'Medicinal chemistry', key);
+});
+
 test('the fixed genetic support table is cited and internally consistent', () => {
   assert.equal(GENETIC_SUPPORT.source, 'minikel2024');
   assert.ok(SOURCES[GENETIC_SUPPORT.source]);
