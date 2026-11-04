@@ -117,7 +117,8 @@ test('agreementPairs matches Karaman 2008 to Davis 2011 by parent compound, targ
 });
 
 const HEAD = 'COMBODRUGSEQ,SCREENER,STUDY,TESTDATE,PLATE,PANELNBR,CELLNBR,PREFIX1,NSC1,SAMPLE1,CONCINDEX1,CONC1,CONCUNIT1,PREFIX2,NSC2,SAMPLE2,CONCINDEX2,CONC2,CONCUNIT2,PERCENTGROWTH,PERCENTGROWTHNOTZ,TESTVALUE,CONTROLVALUE,TZVALUE,EXPECTEDGROWTH,SCORE,VALID,PANEL,CELLNAME';
-const well = (nsc1, i1, nsc2, i2, score, cell) => `1,FG,S1,06/23/2011,P1,9,18,S,${nsc1},37,${i1},1.00E-07,M,S,${nsc2},10,${i2},1.00E-06,M,80,80,1,1,1,${score === null ? '' : 80 + score},${score === null ? '' : score},Y,Panel,${cell}`;
+const alone = (nsc, conc, growth, cell) => `1,FG,S1,06/23/2011,P1,9,18,S,${nsc},37,1,${conc},M,,,,0,,,${growth},${growth},1,1,1,,,Y,Panel,${cell}`;
+const pair = (nsc1, conc1, nsc2, conc2, growth, cell) => `2,FG,S1,06/23/2011,P1,9,18,S,${nsc1},37,1,${conc1},M,S,${nsc2},10,2,${conc2},M,${growth},${growth},1,1,1,0,-999,Y,Panel,${cell}`;
 
 test('almanacNames keeps the first name given for each NSC number', () => {
   const names = almanacNames('740\tMethotrexate\n752\tThioguanine\n752\t6-Thioguanine\n3088\tChlorambucil\n');
@@ -125,16 +126,18 @@ test('almanacNames keeps the first name given for each NSC number', () => {
   assert.equal(names.size, 3);
 });
 
-test('almanacScores averages the Bliss excess of each drug pair per cell line, then across cell lines', () => {
+test('almanacScores scores each pair against the median single-drug growth across plates, per cell line, then averages', () => {
   const lines = [
     HEAD,
-    well(752, 1, 3088, 1, 4, '786-0'), well(752, 1, 3088, 2, -14, '786-0'), well(752, 0, 3088, 1, null, '786-0'),
-    well(3088, 1, 752, 1, 20, 'K-562'), well(740, 2, 752, 3, 30, '786-0'),
+    alone(752, '1.00E-07', 80, '786-0'), alone(752, '1.00E-07', 60, '786-0'), alone(3088, '1.00E-06', 50, '786-0'), alone(3088, '1.00E-05', -20, '786-0'),
+    alone(752, '1.00E-07', 90, 'K-562'), alone(3088, '1.00E-06', 40, 'K-562'), alone(740, '1.00E-08', 100, '786-0'),
+    pair(752, '1.00E-07', 3088, '1.00E-06', 20, '786-0'), pair(752, '1.00E-07', 3088, '1.00E-05', -30, '786-0'),
+    pair(3088, '1.00E-06', 752, '1.00E-07', 30, 'K-562'), pair(740, '1.00E-08', 752, '1.00E-07', 40, '786-0'), pair(740, '1.00E-07', 752, '1.00E-07', 10, '786-0'),
   ];
   const names = new Map([['740', 'Methotrexate'], ['752', 'Thioguanine'], ['3088', 'Chlorambucil']]);
-  assert.deepEqual(almanacScores(lines, names), {
+  assert.deepEqual(almanacScores(() => lines, names), {
     drugs: [{ nsc: '740', name: 'Methotrexate' }, { nsc: '752', name: 'Thioguanine' }, { nsc: '3088', name: 'Chlorambucil' }],
-    pairs: [[0, 1, 30, 1], [1, 2, 7.5, 2]],
+    pairs: [[0, 1, 30, 1], [1, 2, 9.25, 2]],
     cells: 2,
     wells: 4,
   });
