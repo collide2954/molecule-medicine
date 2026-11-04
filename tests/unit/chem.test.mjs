@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  parseMolfile, packMol, unpackMol, implicitHydrogens, rings, ringSystems, aromaticRings, ringName, fsp3, stereocentres, elementCounts, atomLabel, bondLines,
+  parseMolfile, packMol, unpackMol, implicitHydrogens, rings, ringSystems, aromaticRings, ringName, fsp3, stereocentres, elementCounts, atomLabel, bondLines, describeMol, systemKeys,
 } from '../../src/chem.js';
 import { molOf, cycle } from './fixtures.mjs';
 
@@ -114,6 +114,24 @@ test('ringName recognises beta-lactams, cephem and benzodiazepine rings, pyranon
   const pyranone = molOf([...['O', 'C', 'C', 'C', 'C', 'C'].map((el, i) => [el, Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]), ['O', 2, 1]], [...cycle(6, 1, [1, 1, 2, 1, 2, 1]), [2, 7, 2]]);
   assert.equal(first(pyranone), 'pyranone');
   assert.equal(first(pentagon(['O', 'C', 'O', 'C', 'C'], [1, 1, 1, 1, 1])), '1,3-dioxolane');
+});
+
+test('describeMol summarises rings, ring systems, Fsp3 and stereocentres for the snapshot', () => {
+  const mol = parseMolfile(molOf([...Array.from({ length: 6 }, (_, i) => ['C', Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]), ['C', 2, 0], ['O', 3, 0]], [...cycle(6, 1, KEKULE), [1, 7], [7, 8]]));
+  assert.deepEqual(describeMol(mol, 'OC[C@H]1CCCCC1'), {
+    rings: ['benzene'], systems: 1, fsp3: 0.143, stereo: 1, elements: ['C', 'O'],
+  });
+});
+
+test('systemKeys gives the same key to the same ring system in different molecules', () => {
+  const benzene = (extra) => parseMolfile(molOf([...Array.from({ length: 6 }, (_, i) => ['C', Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]), ...extra.map((el) => [el, 2, 0])], [...cycle(6, 1, KEKULE), ...extra.map((_, i) => [1 + i, 7 + i])]));
+  const a = systemKeys(benzene(['O']));
+  const b = systemKeys(benzene(['N', 'Cl']));
+  assert.equal(a.length, 1);
+  assert.equal(a[0].key, b[0].key);
+  assert.deepEqual(a[0].atoms, [0, 1, 2, 3, 4, 5]);
+  const pyridine = parseMolfile(hexagon(['N', 'C', 'C', 'C', 'C', 'C'], KEKULE));
+  assert.notEqual(systemKeys(pyridine)[0].key, a[0].key);
 });
 
 test('fsp3, stereocentres and elementCounts describe a molecule', () => {

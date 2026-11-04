@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  chemblStatus, drugRecord, approvedDrugs, atcNames, pages,
+  chemblStatus, drugRecord, approvedDrugs, atcNames, pages, ringSystemTable,
 } from '../../scripts/chembl.mjs';
 import { molOf } from './fixtures.mjs';
 
@@ -76,6 +76,22 @@ test('drugRecord lists the flags ChEMBL sets and leaves out missing structure an
   assert.equal(r.mol, null);
   assert.equal(r.p, null);
   assert.deepEqual(r.stem, { stem: '-mab', definition: 'monoclonal antibodies', year: 1998 });
+});
+
+test('drugRecord describes the structure it packs', () => {
+  const r = drugRecord(molecule());
+  assert.deepEqual(r.chem, {
+    rings: [], systems: 0, fsp3: 0, stereo: 0, elements: ['C', 'O'],
+  });
+  assert.equal(drugRecord(molecule({ molecule_structures: null })).chem, null);
+});
+
+test('ringSystemTable counts the drugs that hold each ring system and keeps an example to draw', () => {
+  const hexagon = (els) => molOf(els.map((el, i) => [el, Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]), Array.from({ length: 6 }, (_, i) => [i + 1, ((i + 1) % 6) + 1, i % 2 ? 1 : 2]));
+  const drug = (id, els) => drugRecord(molecule({ molecule_chembl_id: id, molecule_hierarchy: { parent_chembl_id: id, molecule_chembl_id: id }, molecule_structures: { molfile: hexagon(els), canonical_smiles: 'c1ccccc1' } }));
+  const table = ringSystemTable([drug('CHEMBL1', ['C', 'C', 'C', 'C', 'C', 'C']), drug('CHEMBL2', ['C', 'C', 'C', 'C', 'C', 'C']), drug('CHEMBL3', ['N', 'C', 'C', 'C', 'C', 'C'])], 5);
+  assert.deepEqual(table.map((t) => [t.n, t.example, t.rings]), [[2, 'CHEMBL1', ['benzene']], [1, 'CHEMBL3', ['pyridine']]]);
+  assert.deepEqual(table[0].atoms, [0, 1, 2, 3, 4, 5]);
 });
 
 test('approvedDrugs keeps parent compounds only, in ChEMBL ID order', () => {
