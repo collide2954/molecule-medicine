@@ -170,6 +170,9 @@ test('NIH grant numbers are split into type, activity, institute and serial', ()
   assert.equal(part(hit, 'Support year'), '04');
   assert.equal(hit.url, 'https://reporter.nih.gov/quickSearch/5R01GM123456-04');
   assert.equal(part(identify('R01DA012345'), 'Institute'), 'DA, National Institute on Drug Abuse');
+  const cpic = identify('5U24HG010135-05');
+  assert.equal(part(cpic, 'Activity'), 'U24, resource-related research project cooperative agreement');
+  assert.equal(part(cpic, 'Institute'), 'HG, National Human Genome Research Institute');
 });
 
 test('star alleles, copy numbers and diplotypes are recognised', () => {
