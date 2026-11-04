@@ -263,6 +263,47 @@ export const logTicks = (min, max) => {
   return out;
 };
 
+export const ticks125 = (lo, hi) => {
+  const out = [];
+  for (let k = Math.floor(Math.log10(lo)) - 1; k <= Math.ceil(Math.log10(hi)); k += 1) {
+    for (const m of [1, 2, 5]) {
+      const v = Number((m * 10 ** k).toPrecision(12));
+      if (v >= lo * (1 - 1e-9) && v <= hi * (1 + 1e-9)) out.push(v);
+    }
+  }
+  return out;
+};
+
+export const span125 = (lo, hi) => {
+  const all = ticks125(lo / 100, hi * 100);
+  return [Math.max(...all.filter((v) => v <= lo * (1 + 1e-9))), Math.min(...all.filter((v) => v >= hi * (1 - 1e-9)))];
+};
+
+export const runs = (list, key) => list.reduce((out, item, i) => {
+  const k = key(item);
+  if (out.length && out.at(-1).key === k) out.at(-1).to = i;
+  else out.push({ key: k, from: i, to: i });
+  return out;
+}, []);
+
+export const partition = (root, maxDepth = Infinity) => {
+  const out = [];
+  const walk = (node, depth, x0, x1) => {
+    out.push({
+      node, depth, x0, x1,
+    });
+    if (depth >= maxDepth || !node.value) return;
+    let at = x0;
+    for (const child of node.children ?? []) {
+      const w = (x1 - x0) * (child.value / node.value);
+      walk(child, depth + 1, at, at + w);
+      at += w;
+    }
+  };
+  walk(root, 0, 0, 1);
+  return out;
+};
+
 export const stack = (rows, keys) => {
   const base = rows.map(() => 0);
   return keys.map((key) => ({

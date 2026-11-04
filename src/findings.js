@@ -1,5 +1,6 @@
 import { exact, pct, soften } from './lib.js';
 import { summary, quantile } from './stats.js';
+import { targetFindings } from './targets.js';
 
 const count = (list, key) => {
   const out = new Map();
@@ -210,4 +211,5 @@ export const findings = (snap) => ({
   stems: stems(snap),
   flags: flags(snap),
   atc: atc(snap),
+  ...targetFindings(snap),
 });
