@@ -34,19 +34,19 @@ test('ddiRows reads the FDA interaction table into drugs, systems, roles and str
   assert.deepEqual(rows[4].links.map((l) => `${l.system} ${l.strength} ${l.role}`), ['3A moderate substrate', 'OATP1B1 transporter substrate', 'OATP1B3 transporter substrate']);
 });
 
-const IC50 = 'drug,ICaL_h,ICaL_IC50,INaL_h,INaL_IC50,hERG_IC50,hERG_h\ndofetilide,1.16,260.32,0.26,753160.41,4.87,0.93\nverapamil,1.09,201.78,1.03,7028.01,288,0.96\nranolazine,NA,NA,0.94,7884.47,8270,0.8866\n';
-const DRUGS = 'drug,therapeutic,CiPA\ndofetilide,2,2\nverapamil,81,0\nranolazine,1948.2,0\n';
+const IC50 = 'drug,ICaL_h,ICaL_IC50,INaL_h,INaL_IC50,hERG_IC50,hERG_h\ndofetilide,1.16,260,0.26,750000,5,0.93\nverapamil,1.09,202.5,1.03,8100,283.5,0.96\nranolazine,NA,NA,0.94,8000,8000,0.8866\n';
+const DRUGS = 'drug,therapeutic,CiPA\ndofetilide,2,2\nverapamil,81,0\nranolazine,2000,1\n';
 
 test('cipaRows joins CiPA IC50s to free Cmax and risk, as margins over Cmax', () => {
   assert.deepEqual(cipaRows(IC50, DRUGS), [
     {
-      drug: 'dofetilide', risk: 'high', cmax: 2, ic50: { ICaL: 260.32, INaL: 753160.41, hERG: 4.87 }, margin: { ICaL: 130.16, INaL: 376580.2, hERG: 2.44 },
+      drug: 'dofetilide', risk: 'high', cmax: 2, ic50: { ICaL: 260, INaL: 750000, hERG: 5 }, margin: { ICaL: 130, INaL: 375000, hERG: 2.5 },
     },
     {
-      drug: 'verapamil', risk: 'low', cmax: 81, ic50: { ICaL: 201.78, INaL: 7028.01, hERG: 288 }, margin: { ICaL: 2.49, INaL: 86.77, hERG: 3.56 },
+      drug: 'verapamil', risk: 'low', cmax: 81, ic50: { ICaL: 202.5, INaL: 8100, hERG: 283.5 }, margin: { ICaL: 2.5, INaL: 100, hERG: 3.5 },
     },
     {
-      drug: 'ranolazine', risk: 'low', cmax: 1948.2, ic50: { ICaL: null, INaL: 7884.47, hERG: 8270 }, margin: { ICaL: null, INaL: 4.05, hERG: 4.24 },
+      drug: 'ranolazine', risk: 'intermediate', cmax: 2000, ic50: { ICaL: null, INaL: 8000, hERG: 8000 }, margin: { ICaL: null, INaL: 4, hERG: 4 },
     },
   ]);
 });
