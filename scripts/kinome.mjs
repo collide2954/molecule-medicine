@@ -1,13 +1,22 @@
 import { gini } from '../src/stats.js';
 
-export const KINASE_GROUPS = ['TK', 'TKL', 'STE', 'CK1', 'AGC', 'CAMK', 'CMGC', 'Atypical', 'Other', 'Lipid or other kinase', 'Non-human', 'Unclassified'];
+export const KINASE_GROUPS = ['TK', 'TKL', 'STE', 'CK1', 'AGC', 'CAMK', 'CMGC', 'Atypical', 'Other', 'Unclassified protein kinase', 'Lipid or other kinase', 'Non-human', 'Unclassified'];
 
-export const kinaseGroup = (path, organism = 'Homo sapiens') => {
+const fromEc = (ec) => {
+  if (ec.some((e) => /^2\.7\.1\./.test(e))) return 'Lipid or other kinase';
+  if (ec.some((e) => /^2\.7\.1[0-2]\./.test(e))) return 'Unclassified protein kinase';
+  return 'Unclassified';
+};
+
+export const kinaseGroup = (path, organism = 'Homo sapiens', ec = []) => {
   if (organism && organism !== 'Homo sapiens') return 'Non-human';
-  if (path[1] !== 'Kinase') return 'Unclassified';
-  if (!/^protein kinase$/i.test(path[2] ?? '')) return 'Lipid or other kinase';
-  const group = String(path[3] ?? '').replace(/ protein kinase group$/i, '');
-  return KINASE_GROUPS.includes(group) ? group : 'Other';
+  if (path[1] === 'Kinase' && /^protein kinase$/i.test(path[2] ?? '')) {
+    const group = String(path[3] ?? '').replace(/ protein kinase group$/i, '');
+    if (KINASE_GROUPS.includes(group)) return group;
+    return path[3] ? 'Other' : 'Unclassified protein kinase';
+  }
+  if (path[1] === 'Kinase') return 'Lipid or other kinase';
+  return fromEc(ec);
 };
 
 const CONSTRUCT = /^Binding constant for (.+?)(?: kinase domain)?$/;

@@ -106,10 +106,14 @@ export const classPath = (tree, id) => {
   return out;
 };
 
+const NON_PROTEIN = new Set(['SMALL MOLECULE', 'METAL', 'OLIGOSACCHARIDE', 'LIPID', 'MACROMOLECULE']);
+
 export const targetFamily = (path, type) => {
+  if (type === 'PROTEIN NUCLEIC-ACID COMPLEX') return 'Ribosome';
+  if (type === 'NUCLEIC-ACID') return 'Nucleic acid';
+  if (NON_PROTEIN.has(type)) return 'Non-protein molecule';
   if (!path.length) {
-    if (/NUCLEIC/i.test(type ?? '')) return 'Nucleic acid';
-    if (/ORGANISM|CELL|TISSUE/i.test(type ?? '')) return 'Organism or cell';
+    if (/ORGANISM|CELL|TISSUE|SUBCELLULAR/i.test(type ?? '')) return 'Organism or cell';
     return 'Unclassified';
   }
   const [l1, l2] = path;
@@ -123,6 +127,12 @@ export const targetFamily = (path, type) => {
   if (l1 === 'Membrane receptor') return 'Other receptor';
   if (l1 === 'Epigenetic regulator') return 'Epigenetic regulator';
   return 'Other protein';
+};
+
+export const moleculeLabel = (m) => {
+  if (m.pref_name) return m.pref_name;
+  const names = m.molecule_synonyms ?? [];
+  return (names.find((s) => s.syn_type === 'RESEARCH_CODE') ?? names[0])?.molecule_synonym ?? m.molecule_chembl_id;
 };
 
 export const targetClass = (classIds, tree, type) => {
