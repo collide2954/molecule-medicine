@@ -27,7 +27,7 @@ test('parseMolfile reads atoms, bonds, charges and isotopes from V2000', () => {
 });
 
 test('packMol and unpackMol round-trip a molecule at two decimals', () => {
-  const mol = parseMolfile(molOf([['C', 0.123, -1.456], ['Cl', 1.5, 0, 0], ['N', 2.5, 0.5, 1]], [[1, 2, 1], [2, 3, 1, 1]]));
+  const mol = parseMolfile(molOf([['C', 0.123, -1.456], ['Cl', 1.5, 0, 0], ['N', 2.5, 0.5, 3]], [[1, 2, 1], [2, 3, 1, 1]]));
   const packed = packMol(mol);
   assert.deepEqual(packed.e, ['C', 'Cl', 'N']);
   assert.deepEqual(packed.x, [12, 150, 250]);
