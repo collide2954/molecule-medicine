@@ -3,9 +3,11 @@ import {
   SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT,
 } from './facts.js';
 import {
-  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds,
+  exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds, duration,
 } from './lib.js';
-import { linearEdges, histogram, summary } from './stats.js';
+import {
+  linearEdges, logEdges, histogram, summary,
+} from './stats.js';
 import { unpackMol } from './chem.js';
 import { FILES } from './queries.js';
 import {
@@ -20,6 +22,12 @@ import {
 import {
   occupancy, operational, operationalSummary, doseRatio, association, washout, curve,
 } from './theory.js';
+import {
+  repeatedDoses, averageSteadyState, accumulation, halfLife,
+} from './pk.js';
+import {
+  pkSummary, ddiMatrix, transporterMatrix, perpetrators, cipaSorted,
+} from './pharmacokinetics.js';
 import {
   hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend, curves, heatmap, html,
 } from './charts.js';
@@ -1186,6 +1194,7 @@ const renderTheory = () => {
 const initTheory = () => {
   $('#occupancy-controls').addEventListener('input', drawOccupancy);
   $('#binding-controls').addEventListener('input', drawBinding);
+  $('#pk-controls').addEventListener('input', () => drawPk());
 };
 
 const renderCombinations = () => {
@@ -1239,6 +1248,190 @@ const renderCombinations = () => {
 };
 
 const heatShade = (v, top) => Number(Math.min(1, 0.08 + 0.92 * Math.min(1, v / top)).toFixed(3));
+
+const logBins = (values, lo, hi, perDecade) => {
+  const edges = logEdges(lo, hi, perDecade);
+  return { edges, counts: histogram(values.filter((v) => v > 0), edges) };
+};
+
+const renderPk = () => {
+  const s = pkSummary(snapshot);
+  const fs = snapshot.pk.f.map((d) => d.median);
+  const longest = snapshot.pk.halfLife.reduce((a, b) => (b.median > a.median ? b : a));
+  const fus = snapshot.pk.ppb.map((d) => Math.max(0.0001, 1 - d.median / 100));
+  $('#pk-dek').textContent = `Half of the approved drugs with a human value in ChEMBL reach the circulation at ${decimal(s.f.median, 0)}% or more of an oral dose, and ${pct(fs.filter((v) => v < 10).length / fs.length)} at less than 10%. The middle half of half-lives run from ${duration(s.halfLife.q1)} to ${duration(s.halfLife.q3)}; the longest is ${DRUG_NAME.get(longest.id) ?? longest.id}, at ${duration(longest.median)}. ${pct(fus.filter((v) => v < 0.01).length / fus.length)} of drugs with a protein-binding value are more than 99% bound.`;
+  const fEdges = linearEdges(0, 100, 10);
+  const fCounts = histogram(fs, fEdges);
+  histo({
+    mount: $('#f-chart'),
+    bins: fCounts,
+    series: [{ key: 'f', label: 'Approved drugs', color: 'var(--s2)', values: fCounts }],
+    tickLabel: (b, i) => `${fEdges[i]}%`,
+    tickEvery: 2,
+    aria: 'Approved drugs by oral bioavailability',
+    describe: (i) => tipLines(plural(fCounts[i], 'approved drug'), `oral bioavailability ${fEdges[i]} to ${fEdges[i + 1]}%`),
+  });
+  attachData('#f-chart', 'oral-bioavailability', ['ChEMBL ID', 'Drug', 'Median F %', 'Values'], snapshot.pk.f.map((d) => [d.id, DRUG_NAME.get(d.id) ?? '', d.median, d.n]));
+  const t = logBins(snapshot.pk.halfLife.map((d) => d.median), -2, 5, 2);
+  const every = $('#halflife-chart').clientWidth < 520 ? 4 : 2;
+  histo({
+    mount: $('#halflife-chart'),
+    bins: t.counts,
+    series: [{ key: 't', label: 'Approved drugs', color: 'var(--s4)', values: t.counts }],
+    tickLabel: (b, i) => (i % every === 0 ? duration(t.edges[i]) : null),
+    tickEvery: 1,
+    aria: 'Approved drugs by human half-life',
+    describe: (i) => tipLines(plural(t.counts[i], 'approved drug'), `half-life ${duration(t.edges[i])} to ${duration(t.edges[i + 1])}`),
+  });
+  attachData('#halflife-chart', 'half-lives', ['ChEMBL ID', 'Drug', 'Median half-life h', 'Values'], snapshot.pk.halfLife.map((d) => [d.id, DRUG_NAME.get(d.id) ?? '', d.median, d.n]));
+  const u = logBins(fus, -4, 0, 2);
+  histo({
+    mount: $('#fu-chart'),
+    bins: u.counts,
+    series: [{ key: 'fu', label: 'Approved drugs', color: 'var(--s5)', values: u.counts }],
+    tickLabel: (b, i) => (i % 2 === 0 ? `${Number((u.edges[i] * 100).toPrecision(2))}%` : null),
+    tickEvery: 1,
+    aria: 'Approved drugs by fraction unbound in plasma',
+    describe: (i) => tipLines(plural(u.counts[i], 'approved drug'), `unbound ${Number((u.edges[i] * 100).toPrecision(2))} to ${Number((u.edges[i + 1] * 100).toPrecision(2))}%`),
+  });
+  attachData('#fu-chart', 'plasma-binding', ['ChEMBL ID', 'Drug', 'Median bound %', 'Values'], snapshot.pk.ppb.map((d) => [d.id, DRUG_NAME.get(d.id) ?? '', d.median, d.n]));
+};
+
+const drawPk = () => {
+  for (const id of ['pk-dose', 'pk-interval', 'pk-f']) showValue(id, 0);
+  for (const id of ['pk-ka', 'pk-cl']) showValue(id, 1);
+  showValue('pk-v', 0);
+  const dose = sliderValue('pk-dose');
+  const tau = sliderValue('pk-interval');
+  const f = sliderValue('pk-f') / 100;
+  const ka = sliderValue('pk-ka');
+  const cl = sliderValue('pk-cl');
+  const v = sliderValue('pk-v');
+  const ke = cl / v;
+  const p = {
+    dose, f, ka, ke, v,
+  };
+  const half = halfLife(cl, v);
+  const span = Math.min(336, Math.max(6 * half, 4 * tau));
+  const points = Array.from({ length: 241 }, (_, i) => {
+    const time = (span * i) / 240;
+    return { x: Number(time.toFixed(3)), y: repeatedDoses(time, tau, p) };
+  });
+  const cavg = averageSteadyState({
+    dose, f, cl, tau,
+  });
+  const start = Math.ceil(Math.max(20 * tau, 7 * half) / tau) * tau;
+  const window = Array.from({ length: 61 }, (_, i) => repeatedDoses(start + (tau * i) / 60, tau, p));
+  const top = Math.max(...points.map((pt) => pt.y), Math.max(...window)) * 1.1;
+  curves({
+    mount: $('#pk-chart'),
+    series: [{ label: 'plasma concentration', color: 'var(--s2)', points }, { label: 'average at steady state', alt: true, points: points.map((pt) => ({ x: pt.x, y: cavg })) }],
+    xDomain: [0, span],
+    yDomain: [0, top],
+    yFormat: (y) => decimal(y, y < 10 ? 1 : 0),
+    xLabel: 'hours',
+    yLabel: 'mg/L',
+    marks: [],
+    aria: 'Plasma concentration after repeated oral doses',
+    describe: (i) => tipLines(`${decimal(points[i].y, 2)} mg/L`, `${decimal(points[i].x, 1)} h after the first dose`),
+  });
+  attachData('#pk-chart', 'pk-simulation', ['Hours', 'mg/L'], points.map((pt) => [pt.x, Number(pt.y.toFixed(4))]));
+  $('#pk-out').textContent = `The half-life is ${duration(half)}; with a dose every ${tau} h the drug accumulates ${decimal(accumulation(ke, tau), 2)}-fold. At steady state, reached to 90% after ${duration(3.32 * half)}, the average is ${decimal(cavg, 2)} mg/L, the peak ${decimal(Math.max(...window), 2)} and the trough ${decimal(Math.min(...window), 2)} mg/L.`;
+};
+
+const renderSimulator = () => drawPk();
+
+const CYP_SHORT = {
+  'strong inhibitor': 'strong inh.', 'moderate inhibitor': 'mod. inh.', 'weak inhibitor': 'weak inh.', 'strong inducer': 'strong ind.', 'moderate inducer': 'mod. ind.', 'weak inducer': 'weak ind.', 'sensitive substrate': 'sens. sub.', 'moderate substrate': 'mod. sub.',
+};
+
+const renderDdi = () => {
+  const m = ddiMatrix(snapshot);
+  const t = transporterMatrix(snapshot);
+  const top = perpetrators(snapshot);
+  const at = (system, label) => m.counts[m.systems.indexOf(system)][m.categories.indexOf(label)];
+  const cyp3a = m.categories.reduce((n, c) => n + at('3A', c), 0);
+  const all = m.counts.flat().reduce((a, b) => a + b, 0);
+  $('#ddi-dek').textContent = `CYP3A carries ${pct(cyp3a / all)} of the enzyme entries in FDA’s table. ${capital(top[0].drug)} has the most listed inhibition and induction, ${top[0].n} entries, then ${top[1].drug} and ${top[2].drug}. Among transporters, ${exact(t.counts[t.systems.indexOf('P-gp')][0])} drugs are listed as P-gp inhibitors and ${exact(t.counts[t.systems.indexOf('OATP1B1')][1])} as OATP1B1 substrates.`;
+  grid({
+    mount: $('#ddi-chart'),
+    rows: m.systems.map((s) => `CYP${s}`),
+    cols: m.categories.map((c) => CYP_SHORT[c] ?? c),
+    values: m.counts,
+    color: 'var(--s1)',
+    aria: 'FDA-listed CYP inhibitors, inducers and substrates by enzyme',
+    describe: (i, j) => {
+      const names = snapshot.ddi.rows.filter((r) => r.links.some((l) => l.system === m.systems[i] && `${l.strength} ${l.role}` === m.categories[j])).map((r) => r.drug);
+      return tipLines(exact(m.counts[i][j]), `CYP${m.systems[i]} ${m.categories[j]}s`, names.slice(0, 6).join(', ') + (names.length > 6 ? ', …' : ''));
+    },
+  });
+  attachData('#ddi-chart', 'cyp-interactions', ['Enzyme', ...m.categories], m.systems.map((s, i) => [`CYP${s}`, ...m.counts[i]]));
+  grid({
+    mount: $('#transporter-chart'),
+    rows: t.systems,
+    cols: t.roles,
+    values: t.counts,
+    color: 'var(--s4)',
+    aria: 'FDA-listed transporter inhibitors and substrates',
+    describe: (i, j) => {
+      const names = snapshot.ddi.rows.filter((r) => r.links.some((l) => l.system === t.systems[i] && l.role === t.roles[j])).map((r) => r.drug);
+      return tipLines(exact(t.counts[i][j]), `${t.systems[i]} ${t.roles[j]}s`, names.slice(0, 6).join(', ') + (names.length > 6 ? ', …' : ''));
+    },
+  });
+  attachData('#transporter-chart', 'transporter-interactions', ['Transporter', 'Inhibitors', 'Substrates'], t.systems.map((s, i) => [s, ...t.counts[i]]));
+  const shown = top.slice(0, 20);
+  dotplot({
+    mount: $('#perpetrator-chart'),
+    rows: shown.map((p) => ({ key: p.drug, label: p.drug, value: p.n })),
+    scale: 'linear',
+    labelShare: 0.42,
+    aria: 'Drugs with the most CYP and transporter inhibition and induction',
+    describe: (r) => {
+      const p = shown.find((x) => x.drug === r.key);
+      return tipLines(plural(p.n, 'entry', 'entries'), p.drug, p.links.map((l) => `${l.system} ${l.strength === 'transporter' ? '' : `${l.strength} `}${l.role}`).join('; '));
+    },
+  });
+  attachData('#perpetrator-chart', 'interaction-perpetrators', ['Drug', 'Entries', 'Interactions'], top.map((p) => [p.drug, p.n, p.links.map((l) => `${l.system} ${l.strength} ${l.role}`).join('; ')]));
+};
+
+const renderCipa = () => {
+  const rows = cipaSorted(snapshot);
+  const currents = Object.keys(rows[0].margin);
+  const lowCa = rows.filter((r) => r.risk === 'low' && r.margin.ICaL !== null).reduce((a, b) => (b.margin.ICaL < a.margin.ICaL ? b : a));
+  const highHerg = rows.filter((r) => r.risk === 'high').reduce((a, b) => (b.margin.hERG < a.margin.hERG ? b : a));
+  $('#cipa-dek').textContent = `CiPA judges a drug by the currents it blocks at therapeutic exposure, not by hERG alone. ${capital(lowCa.drug)} blocks the L-type calcium current at ${lowCa.margin.ICaL} times its free Cmax and is low risk despite a hERG margin of ${lowCa.margin.hERG}; ${highHerg.drug}, high risk, blocks hERG at ${highHerg.margin.hERG} times its free Cmax.`;
+  const shade = (v) => heatShade(Math.max(0, 4 - Math.log10(v)), 5);
+  grid({
+    mount: $('#cipa-chart'),
+    rows: rows.map((r) => `${r.drug}, ${r.risk}`),
+    cols: currents,
+    values: rows.map((r) => currents.map((c) => r.margin[c])),
+    color: 'var(--s1)',
+    shade,
+    format: (v) => (v >= 1000 ? compact(v) : String(Number(v.toPrecision(2)))),
+    aria: 'Ion channel block margins of the CiPA training drugs',
+    describe: (i, j) => {
+      const r = rows[i];
+      const v = r.margin[currents[j]];
+      return v === null ? tipLines('no block fitted', `${r.drug} on ${currents[j]}`) : tipLines(`${Number(v.toPrecision(3))} times free Cmax`, `${r.drug} on ${currents[j]}, ${r.risk} risk`, `IC50 ${molar(r.ic50[currents[j]] * 1e-9)}, free Cmax ${molar(r.cmax * 1e-9)}`);
+    },
+  });
+  attachData('#cipa-chart', 'cipa-margins', ['Drug', 'Risk', 'Free Cmax nM', ...currents.map((c) => `${c} IC50 nM`)], rows.map((r) => [r.drug, r.risk, r.cmax, ...currents.map((c) => r.ic50[c])]));
+  dotplot({
+    mount: $('#herg-chart'),
+    rows: rows.map((r) => ({
+      key: r.drug, label: `${r.drug}, ${r.risk}`, value: r.margin.hERG, hi: r.risk === 'high',
+    })),
+    labelShare: 0.4,
+    format: (v) => `${Number(v.toPrecision(2))}×`,
+    aria: 'hERG margins of the CiPA training drugs',
+    describe: (r) => {
+      const d = rows.find((x) => x.drug === r.key);
+      return tipLines(`hERG IC50 ${Number(d.margin.hERG.toPrecision(3))} times free Cmax`, `${d.drug}, ${d.risk} risk`);
+    },
+  });
+  attachData('#herg-chart', 'herg-margins', ['Drug', 'Risk', 'hERG margin'], rows.map((r) => [r.drug, r.risk, r.margin.hERG]));
+};
 
 const decode = () => {
   const value = $('#decoder-input').value;
@@ -1294,6 +1487,9 @@ const DATA_SOURCES = [
   ['ChEMBL data sources', FILES.chemblSources],
   ['NCI-ALMANAC combination growth data', FILES.almanac],
   ['NCI-ALMANAC compound names', FILES.almanacNames],
+  ['FDA table of drugs that interact with CYP enzymes and transporter systems', FILES.fdaInteractions],
+  ['CiPA IC50 values, Li et al. 2017, FDA CiPA repository', FILES.cipaIc50],
+  ['CiPA training drugs, free Cmax and risk, FDA CiPA repository', FILES.cipaDrugs],
 ];
 
 const renderSources = () => {
@@ -1381,6 +1577,10 @@ const drawCharts = () => {
   renderKinetics();
   renderTheory();
   renderCombinations();
+  renderPk();
+  renderSimulator();
+  renderDdi();
+  renderCipa();
   applySearch();
 };
 

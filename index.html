@@ -501,8 +501,79 @@
     </div>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-pharmacokinetics" data-chapter="pharmacokinetics">
     <p class="chapter-no">Part 4</p>
+    <h2 class="chapter-title">Pharmacokinetics</h2>
+    <p class="chapter-dek">Where drugs go once they are taken: bioavailability, half-life and protein binding across approved drugs, a dosing simulator, the enzymes and transporters behind drug interactions, and the cardiac ion currents that decide proarrhythmic risk.</p>
+  </div>
+
+  <section class="story wrap" id="pk" data-lens="basic clinical" data-nav="PK parameters">
+    <header class="head"><p class="label">Absorption, half-life and binding</p><h2 data-finding="pk">Absorption, half-life and binding</h2><p class="dek" id="pk-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="f-chart"></div>
+      <figcaption>Approved drugs by oral bioavailability in humans, in steps of 10%: for each drug, the median of the values ChEMBL abstracts from the literature. Source: ChEMBL activity search index.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="halflife-chart"></div>
+        <figcaption>Approved drugs by human elimination half-life, the median for each drug, in bins of half a log unit. Source: ChEMBL activity search index.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="fu-chart"></div>
+        <figcaption>Approved drugs by fraction unbound in human plasma, one minus protein binding, in bins of half a log unit. Source: ChEMBL activity search index.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="simulator" data-lens="clinical" data-nav="PK simulator">
+    <header class="head"><p class="label">PK simulator</p><h2>Dose, interval and clearance, live</h2><p class="dek">A one-compartment model with first-order absorption, dosed at a fixed interval. Steady state arrives after four to five half-lives whatever the dose; dose and interval set where it lies; and an interval short against the half-life flattens the swing between peak and trough.</p></header>
+    <figure class="fig">
+      <div class="sliders" id="pk-controls">
+        <div class="slider"><label for="pk-dose">Dose, mg</label><input id="pk-dose" type="range" min="10" max="1000" step="10" value="100"><output id="pk-dose-out" for="pk-dose">100</output></div>
+        <div class="slider"><label for="pk-interval">Interval, hours</label><input id="pk-interval" type="range" min="4" max="48" step="2" value="12"><output id="pk-interval-out" for="pk-interval">12</output></div>
+        <div class="slider"><label for="pk-f">Bioavailability, %</label><input id="pk-f" type="range" min="5" max="100" step="5" value="80"><output id="pk-f-out" for="pk-f">80</output></div>
+        <div class="slider"><label for="pk-ka">Absorption rate, per hour</label><input id="pk-ka" type="range" min="0.2" max="5" step="0.1" value="1"><output id="pk-ka-out" for="pk-ka">1.0</output></div>
+        <div class="slider"><label for="pk-cl">Clearance, L/h</label><input id="pk-cl" type="range" min="0.5" max="50" step="0.5" value="5"><output id="pk-cl-out" for="pk-cl">5.0</output></div>
+        <div class="slider"><label for="pk-v">Volume, L</label><input id="pk-v" type="range" min="5" max="500" step="5" value="50"><output id="pk-v-out" for="pk-v">50</output></div>
+      </div>
+      <div class="chart" id="pk-chart"></div>
+      <p class="explain" id="pk-out" aria-live="polite"></p>
+      <figcaption>Plasma concentration after repeated oral doses, computed in the page by adding single-dose curves, C = F·D·k<sub>a</sub> / (V(k<sub>a</sub> − k<sub>e</sub>)) × (e<sup>−k<sub>e</sub>t</sup> − e<sup>−k<sub>a</sub>t</sup>), with k<sub>e</sub> = CL / V. The flat line is the average concentration at steady state, F·D / (CL·τ).</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="ddi" data-lens="clinical safety" data-nav="Interactions">
+    <header class="head"><p class="label">Drug interactions</p><h2 data-finding="ddi">Drug interactions</h2><p class="dek" id="ddi-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="ddi-chart"></div>
+      <figcaption>Drugs and foods FDA lists as clinical inhibitors, inducers and substrates of each cytochrome P450, by strength: a strong inhibitor raises a sensitive substrate’s AUC at least fivefold, a moderate one two- to fivefold and a weak one 1.25- to twofold; a strong inducer cuts it by 80% or more. Source: FDA, examples of drugs that interact with CYP enzymes and transporter systems.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="transporter-chart"></div>
+        <figcaption>Drugs FDA lists as clinical inhibitors or substrates of each drug transporter. Source: FDA.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="perpetrator-chart"></div>
+        <figcaption>The 20 drugs and foods with the most CYP or transporter inhibition and induction listed. Source: FDA.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="cipa" data-lens="safety" data-nav="CiPA">
+    <header class="head"><p class="label">Cardiac ion currents</p><h2 data-finding="cipa">Cardiac ion currents</h2><p class="dek" id="cipa-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="cipa-chart"></div>
+      <figcaption>IC50 for each cardiac ion current divided by the drug’s free therapeutic Cmax, for the 12 CiPA training drugs: darker where the margin is smaller, log scale, blank where no block could be fitted. Rows run from high to low torsade risk as CiPA classed the drugs. Source: FDA CiPA repository; Li et al. 2017; Crumb et al. 2016.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="herg-chart"></div>
+      <figcaption>hERG IC50 over free Cmax for each training drug, log scale, high-risk drugs highlighted. Source: FDA CiPA repository.</figcaption>
+    </figure>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 5</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>

@@ -813,7 +813,7 @@ export const icicle = ({
 };
 
 export const grid = ({
-  mount, rows, cols, values, aria, describe, color = 'var(--data)', format = compact,
+  mount, rows, cols, values, aria, describe, color = 'var(--data)', format = compact, shade,
 }) => {
   const W = widthOf(mount);
   const L = Math.min(Math.max(...rows.map((r) => String(r).length)) * 6.8 + 10, W * 0.42);
@@ -821,20 +821,20 @@ export const grid = ({
   const ch = 24;
   const T = Math.max(...cols.map((c) => String(c).length)) * 6.4 + 12;
   const H = T + rows.length * ch + 2;
-  const top = Math.log1p(Math.max(1, ...values.flat()));
+  const top = Math.log1p(Math.max(1, ...values.flat().filter((v) => v !== null && v !== undefined)));
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
     cols.map((c, j) => el('text', { class: 'col-lab', transform: `translate(${(L + j * cw + cw / 2 + 4).toFixed(1)},${T - 6}) rotate(-90)` }, c)),
     rows.map((r, i) => el('text', { class: 'lab', x: 2, y: T + i * ch + ch / 2 + 4 }, r)),
     rows.flatMap((r, i) => cols.map((c, j) => {
       const v = values[i][j];
       const k = i * cols.length + j;
-      const shade = v ? heat(Math.log1p(v), 0, top) : 0.035;
+      const opacity = v === null || v === undefined ? 0.035 : shade ? shade(v) : v ? heat(Math.log1p(v), 0, top) : 0.035;
       return el('g', { 'data-cell': `${i}:${j}`, 'data-k': k, 'data-rank': k },
         el('rect', {
-          class: 'cell', x: (L + j * cw).toFixed(1), y: T + i * ch, width: Math.max(1, cw - 2).toFixed(1), height: ch - 2, style: `fill:${color};fill-opacity:${shade};--i:${i}`,
+          class: 'cell', x: (L + j * cw).toFixed(1), y: T + i * ch, width: Math.max(1, cw - 2).toFixed(1), height: ch - 2, style: `fill:${color};fill-opacity:${opacity};--i:${i}`,
         }),
-        v && cw >= 7 * String(format(v)).length + 4 ? el('text', {
-          class: `cell-n${shade > 0.5 ? ' on' : ''}`, x: (L + j * cw + cw / 2 - 1).toFixed(1), y: T + i * ch + ch / 2 + 3, 'text-anchor': 'middle',
+        v !== null && v !== undefined && (v || shade) && cw >= 7 * String(format(v)).length + 4 ? el('text', {
+          class: `cell-n${opacity > 0.5 ? ' on' : ''}`, x: (L + j * cw + cw / 2 - 1).toFixed(1), y: T + i * ch + ch / 2 + 3, 'text-anchor': 'middle',
         }, format(v)) : null);
     })));
   hover(svg, (k) => describe(Math.floor(Number(k) / cols.length), Number(k) % cols.length));

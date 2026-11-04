@@ -44,6 +44,10 @@ export const SOURCES = {
   holbeck2017: 'https://doi.org/10.1158/0008-5472.CAN-17-0489',
   hopkins2004: 'https://doi.org/10.1016/S1359-6446(04)03069-7',
   leeson2007: 'https://doi.org/10.1038/nrd2445',
+  fdaDdi: 'https://www.fda.gov/drugs/drug-interactions-labeling/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems',
+  cipaRepo: 'https://github.com/FDA/CiPA',
+  crumb2016: 'https://doi.org/10.1016/j.vascn.2016.03.009',
+  li2017: 'https://doi.org/10.1161/CIRCEP.116.004628',
 };
 
 export const SOURCE_TITLES = {
@@ -87,6 +91,10 @@ export const SOURCE_TITLES = {
   holbeck2017: ['Pharmacology', 'Holbeck et al. 2017, The National Cancer Institute ALMANAC: a comprehensive screening resource for the detection of anticancer drug pairs with enhanced therapeutic activity, Cancer Research 77:3564'],
   hopkins2004: ['Medicinal chemistry', 'Hopkins, Groom and Alex 2004, Ligand efficiency: a useful metric for lead selection, Drug Discovery Today 9:430'],
   leeson2007: ['Medicinal chemistry', 'Leeson and Springthorpe 2007, The influence of drug-like concepts on decision-making in medicinal chemistry, Nature Reviews Drug Discovery 6:881'],
+  fdaDdi: ['Pharmacokinetics', 'FDA, examples of drugs that interact with CYP enzymes and transporter systems'],
+  cipaRepo: ['Safety', 'FDA, Comprehensive in vitro Proarrhythmia Assay model code and data'],
+  crumb2016: ['Safety', 'Crumb et al. 2016, An evaluation of 30 clinical drugs against the comprehensive in vitro proarrhythmia assay (CiPA) proposed ion channel panel, Journal of Pharmacological and Toxicological Methods 81:251'],
+  li2017: ['Safety', 'Li et al. 2017, Improving the in silico assessment of proarrhythmia risk by combining hERG channel–drug binding kinetics and multichannel pharmacology, Circulation: Arrhythmia and Electrophysiology 10:e004628'],
 };
 
 export const GENETIC_SUPPORT = {
