@@ -1,6 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { runSections, diffCounts } from '../../scripts/sections.mjs';
+import { runSections, diffCounts, toModule } from '../../scripts/sections.mjs';
+
+test('toModule writes one top-level key per line and one record per line of each top-level list', () => {
+  const text = toModule({ generated: '2026-11-08', drugs: [{ id: 'CHEMBL25', p: { mw: 180.16 } }, { id: 'CHEMBL3' }], chembl: { release: 'ChEMBL_37', counts: [1, 2] } });
+  assert.equal(text, [
+    'export default {',
+    '"generated": "2026-11-08",',
+    '"drugs": [',
+    '{"id":"CHEMBL25","p":{"mw":180.16}},',
+    '{"id":"CHEMBL3"}',
+    '],',
+    '"chembl": {"release":"ChEMBL_37","counts":[1,2]}',
+    '};',
+    '',
+  ].join('\n'));
+  assert.equal(toModule({ empty: [] }), 'export default {\n"empty": []\n};\n');
+});
 
 const NOW = new Date('2026-11-08T06:17:00Z');
 const quiet = () => {};
