@@ -261,7 +261,7 @@ test('packedLayout lays each component out in its own block, largest first, insi
   const d = (i, j) => Math.hypot(a[i][0] - a[j][0], a[i][1] - a[j][1]);
   assert.ok(d(4, 5) < d(4, 6) && d(6, 7) < d(5, 7));
   assert.ok(d(0, 1) < d(0, 4) && d(2, 3) < d(3, 6));
-  assert.ok(Math.max(...a.map(([, y]) => y)) <= 1 && Math.max(...a.map(([x]) => x)) === 1);
+  assert.equal(Math.max(...a.flat()), 1);
 });
 
 test('forceLayout is deterministic, keeps nodes in the unit square and pulls linked nodes together', () => {
