@@ -1,10 +1,32 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  waffle, scaleLinear, scaleLog, logTicks, stack, zoomDomain, panDomain, easeOut, spread, squarify, spanTicks, heat, stepPath,
+  waffle, scaleLinear, scaleLog, logTicks, stack, zoomDomain, panDomain, easeOut, spread, squarify, spanTicks, heat, stepPath, runs, partition, ticks125, span125,
 } from '../../src/lib.js';
 
 const close = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
+
+test('runs groups consecutive items that share a key', () => {
+  assert.deepEqual(runs(['TK', 'TK', 'AGC', 'TK'], (g) => g), [{ key: 'TK', from: 0, to: 1 }, { key: 'AGC', from: 2, to: 2 }, { key: 'TK', from: 3, to: 3 }]);
+  assert.deepEqual(runs([], (g) => g), []);
+});
+
+test('partition lays a tree out as nested spans in proportion to value, depth first', () => {
+  const tree = {
+    name: 'all',
+    value: 10,
+    children: [{ name: 'a', value: 6, children: [{ name: 'a1', value: 3, children: [] }] }, { name: 'b', value: 4, children: [] }],
+  };
+  assert.deepEqual(partition(tree).map((c) => [c.node.name, c.depth, c.x0, c.x1]), [['all', 0, 0, 1], ['a', 1, 0, 0.6], ['a1', 2, 0, 0.3], ['b', 1, 0.6, 1]]);
+  assert.deepEqual(partition(tree, 1).map((c) => c.node.name), ['all', 'a', 'b']);
+});
+
+test('ticks125 and span125 step a log axis by 1, 2 and 5', () => {
+  assert.deepEqual(ticks125(0.05, 10), [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10]);
+  assert.deepEqual(ticks125(1, 100), [1, 2, 5, 10, 20, 50, 100]);
+  assert.deepEqual(span125(0.08, 9.09), [0.05, 10]);
+  assert.deepEqual(span125(1.2, 3.4), [1, 5]);
+});
 
 test('spanTicks covers the whole range with round steps', () => {
   assert.deepEqual(spanTicks(73, 803), [0, 200, 400, 600, 800, 1000]);

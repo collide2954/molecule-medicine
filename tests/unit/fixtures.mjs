@@ -85,6 +85,142 @@ export const molOf = (atoms, bonds, props = []) => {
 
 export const cycle = (n, start = 1, orders = []) => Array.from({ length: n }, (_, i) => [start + i, start + ((i + 1) % n), orders[i] ?? 1]);
 
+const monoamine = ['Membrane receptor', 'Family A G protein-coupled receptor', 'Small molecule receptor (family A GPCR)', 'Monoamine receptor'];
+
+const target = (id, name, family, path, over = {}) => ({
+  id, name, type: 'SINGLE PROTEIN', organism: 'Homo sapiens', genes: [], accessions: [], ec: [], family, path, ...over,
+});
+
+export const PART2 = {
+  targets: {
+    coverage: {
+      approved: 7, withTarget: 5, untargeted: 1, none: 1,
+    },
+    mechanisms: [
+      {
+        drug: 'a', target: 'T1', action: 'ANTAGONIST', moa: 'Dopamine D2 receptor antagonist', direct: 1,
+      },
+      {
+        drug: 'a', target: 'T2', action: 'ANTAGONIST', moa: 'Histamine H1 receptor antagonist', direct: 1,
+      },
+      {
+        drug: 'b', target: 'T2', action: 'INVERSE AGONIST', moa: 'Histamine H1 receptor inverse agonist', direct: 1,
+      },
+      {
+        drug: 'c', target: 'T3', action: 'INHIBITOR', moa: 'Tyrosine-protein kinase ABL inhibitor', direct: 1,
+      },
+      {
+        drug: 'd', target: 'T3', action: 'INHIBITOR', moa: 'Tyrosine-protein kinase ABL inhibitor', direct: 1,
+      },
+      {
+        drug: 'd', target: 'T4', action: 'INHIBITOR', moa: 'Cyclooxygenase inhibitor', direct: 1,
+      },
+      {
+        drug: 'f', target: 'T5', action: 'BINDING AGENT', moa: 'Tumor necrosis factor binding agent', direct: 1,
+      },
+    ],
+    targets: [
+      target('T1', 'D(2) dopamine receptor', 'GPCR', monoamine, { genes: ['DRD2'], accessions: ['P14416'] }),
+      target('T2', 'Histamine H1 receptor', 'GPCR', monoamine, { genes: ['HRH1'], accessions: ['P35367'] }),
+      target('T3', 'Tyrosine-protein kinase ABL', 'Kinase', ['Enzyme', 'Kinase', 'Protein Kinase', 'TK protein kinase group', 'Tyrosine protein kinase Abl family'], { genes: ['ABL1'], ec: ['2.7.10.2'] }),
+      target('T4', 'Cyclooxygenase', 'Other enzyme', ['Enzyme', 'Oxidoreductase'], { type: 'PROTEIN FAMILY', ec: ['1.14.99.1'] }),
+      target('T5', 'Tumor necrosis factor', 'Other protein', ['Secreted protein']),
+    ],
+  },
+  network: {
+    drugs: 5,
+    nodes: [['a', 0.1, 0.2], ['d', 0.6, 0.5], ['b', 0.2, 0.3], ['c', 0.7, 0.6], ['f', 0.9, 0.9], ['T2', 0.15, 0.25], ['T3', 0.65, 0.55], ['T1', 0.1, 0.1], ['T4', 0.5, 0.4], ['T5', 0.95, 0.95]],
+    edges: [[0, 5], [0, 7], [1, 6], [1, 8], [2, 5], [3, 6], [4, 9]],
+  },
+  kinome: {
+    document: 'CHEMBL1908390',
+    inhibitors: [
+      {
+        id: 'K1', parent: 'K1', name: 'IMATINIB', approved: true, hits: 1, s3: 0.25, gini: 0.9,
+      },
+      {
+        id: 'K2', parent: 'K2', name: 'STAUROSPORINE', approved: false, hits: 4, s3: 1, gini: 0.5,
+      },
+    ],
+    kinases: [
+      {
+        id: 'A1', target: 'T3', name: 'ABL1', variant: null, group: 'TK', gene: 'ABL1',
+      },
+      {
+        id: 'A2', target: 'T3', name: 'ABL1(T315I)', variant: 'T315I', group: 'TK', gene: 'ABL1',
+      },
+      {
+        id: 'A3', target: 'T6', name: 'EGFR', variant: null, group: 'TK', gene: 'EGFR',
+      },
+      {
+        id: 'A5', target: 'T8', name: 'AKT1', variant: null, group: 'AGC', gene: 'AKT1',
+      },
+      {
+        id: 'A4', target: 'T7', name: 'CDK2', variant: null, group: 'CMGC', gene: 'CDK2',
+      },
+    ],
+    pkd: [[8, null, null, null, null], [9, 8.5, 7, 8, 6]],
+  },
+  gtopdb: {
+    version: '2026.3.1',
+    types: {
+      gpcr: {
+        targets: 10, ligand: 8, approved: 5, endogenous: 6, orphans: 2,
+      },
+      enzyme: {
+        targets: 20, ligand: 12, approved: 4, endogenous: 1, orphans: 0,
+      },
+      transporter: {
+        targets: 5, ligand: 1, approved: 1, endogenous: 0, orphans: 1,
+      },
+    },
+    endogenous: { Peptide: 6, Metabolite: 3, Inorganic: 1 },
+    interactions: 100,
+    orphans: [
+      {
+        id: '90', type: 'gpcr', family: 'Class A Orphans with no pharmacology', name: 'GPR6', gene: 'GPR6',
+      },
+      {
+        id: '91', type: 'gpcr', family: 'Class A Orphans with emerging pharmacology', name: 'GPR3', gene: 'GPR3',
+      },
+      {
+        id: '92', type: 'transporter', family: 'Orphan SLC38 transporters', name: 'SLC38A6', gene: 'SLC38A6',
+      },
+    ],
+    affinities: [
+      ['salbutamol', 'β2-adrenoceptor', 'gpcr', 'pKi', 5.8], ['haloperidol', 'D2 receptor', 'gpcr', 'pKi', 9], ['loratadine', 'H1 receptor', 'gpcr', 'pKi', 8.2],
+      ['aspirin', 'COX-1', 'enzyme', 'pIC50', 5.3], ['imatinib', 'ABL1', 'enzyme', 'pKd', 8.1],
+    ].map(([ligand, t, type, units, value]) => ({
+      ligand, target: t, type, units, value, action: 'Inhibition',
+    })),
+  },
+  genetics: {
+    clinvarDated: 'October 31, 2026',
+    all: { genes: 100, clinvar: 90, pathogenic: 40 },
+    targets: { genes: 10, clinvar: 10, pathogenic: 7 },
+    bins: ['none', '1–9', '10–99', '100–999', '1,000+'],
+    binned: { all: [60, 20, 15, 4, 1], targets: [3, 3, 3, 1, 0] },
+    examples: [{ symbol: 'SCN5A', pathogenic: 591 }],
+  },
+  structures: {
+    pdb: {
+      total: 1000, years: [2023, 2024, 2025, 2026], methods: { 'X-ray': [300, 280, 250, 100], 'Electron microscopy': [50, 80, 120, 60], NMR: [10, 10, 8, 2], Other: [1, 1, 1, 0] },
+    },
+    gpcrdb: {
+      total: 40,
+      human: 30,
+      receptors: 12,
+      classes: { 'Class A (Rhodopsin)': 30, 'Class B1 (Secretin)': 10 },
+      states: { Active: 25, Inactive: 15 },
+      byClass: { 'Class A (Rhodopsin)': { Active: 18, Inactive: 12 }, 'Class B1 (Secretin)': { Active: 7, Inactive: 3 } },
+      signalling: { 'G protein': 20 },
+      ligands: { Agonist: 20, Antagonist: 8 },
+      years: [2007, 2022],
+      methods: { 'X-ray': [5, 5], 'Electron microscopy': [0, 30] },
+    },
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
