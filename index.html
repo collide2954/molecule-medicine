@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basic &amp; Clinical Pharmacology in Numbers</title>
+<meta name="description" content="Pharmacology counted: approved drugs and their chemistry, targets, potency, pharmacokinetics, trials, manufacturing, approvals, labels, use, safety and pharmacogenomics, from ChEMBL, FDA, CMS, CDC, NIH and CPIC files. Rebuilt weekly.">
+<meta name="color-scheme" content="light dark">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Basic &amp; Clinical Pharmacology in Numbers">
+<meta property="og:description" content="Pharmacology counted: approved drugs and their chemistry, targets, potency, pharmacokinetics, trials, manufacturing, approvals, labels, use, safety and pharmacogenomics, from ChEMBL, FDA, CMS, CDC, NIH and CPIC files. Rebuilt weekly.">
+<meta property="og:url" content="https://collide2954.github.io/basic-clinical-pharm/">
+<meta property="og:image" content="https://collide2954.github.io/basic-clinical-pharm/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Basic &amp; Clinical Pharmacology in Numbers: drugs from molecule to clinic, counted">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23f4f1ea'/%3E%3Crect x='4' y='11' width='24' height='10' rx='5' fill='%231a1a1a'/%3E%3Cpath d='M16 11h7a5 5 0 0 1 0 10h-7z' fill='%23d93a1f'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..600&amp;family=Schibsted+Grotesk:wght@400;500;700&amp;display=swap">
+<link rel="stylesheet" href="src/styles.css">
+<script type="module" src="src/app.js"></script>
+</head>
+<body>
+<header class="masthead">
+  <div class="wrap mast">
+    <a class="wordmark" href="./">BASIC<i>/</i>CLINICAL <em>in numbers</em></a>
+    <p class="dateline" id="stamp"></p>
+    <div class="controls">
+      <label class="filter"><span class="sr">Filter lists on this page</span><input id="q" type="search" placeholder="Filter: imatinib, -tinib, CYP2D6" autocomplete="off"></label>
+      <button id="theme" type="button" class="textbtn" aria-label="Toggle dark mode">Dark</button>
+    </div>
+  </div>
+  <div class="wrap lensbar">
+    <span class="readas">Read as</span>
+    <div class="lenses" id="lenses" role="group" aria-label="Lens"></div>
+    <p class="lens-hint" id="lens-hint"></p>
+  </div>
+</header>
+
+<nav class="jump" aria-label="Sections">
+  <div class="wrap" id="jump"></div>
+</nav>
+
+<main>
+  <section class="lede wrap" id="lede" aria-label="Headline numbers">
+    <p class="kicker">Pharmacology, counted</p>
+    <h1><span class="hero" data-hero="activities">0</span> <span class="hero-unit">measured activities of molecules on their targets in ChEMBL</span></h1>
+    <p class="standfirst" id="lede-text"></p>
+    <dl class="ticker" id="ticker"></dl>
+  </section>
+
+  <aside class="readme wrap" id="readme" aria-labelledby="readme-title">
+    <h2 class="readme-title" id="readme-title">How to read these numbers</h2>
+    <ul>
+      <li><b>Rebuilt weekly.</b> Every count comes from the files and APIs that ChEMBL, FDA, CMS, CDC, NIH and CPIC publish, pulled every Sunday. A source that fails keeps last week’s numbers and its own date. Tap a mark for its numbers.</li>
+      <li><b>Two meanings of approved.</b> Chemistry and targets count the drugs ChEMBL lists at maximum phase 4, approved somewhere, one entry per parent compound with its salts folded in. Regulatory history counts FDA novel approvals. Each caption says which.</li>
+      <li><b>First approval dates.</b> ChEMBL dates a drug by the earliest approval it records, so medicines older than modern registration, such as aspirin and morphine, carry later years than their first use.</li>
+      <li><b>Potency and concentration.</b> Affinities are plotted as pKi, pIC50 or pEC50, minus the log of the molar value, with nanomolar in the popups; plasma levels are in ng/mL.</li>
+      <li><b>Log scales.</b> Charts that span several orders of magnitude say log scale in their caption.</li>
+      <li><b>Every figure’s numbers.</b> Each caption ends with a table and a CSV of exactly what is drawn.</li>
+    </ul>
+  </aside>
+
+  <div class="chapter wrap" id="ch-molecules" data-chapter="molecules">
+    <p class="chapter-no">Part 1</p>
+    <h2 class="chapter-title">Molecules</h2>
+    <p class="chapter-dek">What the approved drugs are: their types, how drug-like and how large, the rings and atoms they are built from, their handedness, names, flags and therapeutic classes, read from ChEMBL’s records and structures.</p>
+  </div>
+
+  <section class="story wrap" id="approved" data-lens="basic clinical" data-nav="Approved drugs">
+    <header class="head"><p class="label">Approved drugs</p><h2 data-finding="approved">Approved drugs</h2><p class="dek" id="approved-dek"></p></header>
+    <figure class="fig narrow">
+      <div class="chart" id="types-chart"></div>
+      <figcaption>Approved drugs by molecule type, one entry per parent compound with its salts folded in; each square is 1%. Types under 0.5% are grouped as other. Source: ChEMBL, maximum phase 4.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="approvals-chart"></div>
+      <figcaption>Approved drugs by the year of first approval ChEMBL records, cumulative, by kind. Drugs ChEMBL gives no year are left out. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="druglike" data-lens="basic" data-nav="Drug-likeness">
+    <header class="head"><p class="label">Drug-likeness</p><h2 data-finding="druglike">Drug-likeness</h2><p class="dek" id="druglike-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="space-chart"></div>
+      <figcaption>Approved small molecules by molecular weight and ALogP, counted in hexagons, darker for more. The box marks Lipinski’s limits of 500 Da and a calculated logP of 5. Molecules heavier than 1,000 Da or with an ALogP outside −6 to 10 are left out. Source: ChEMBL calculated properties.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="ro5-chart"></div>
+        <figcaption>Approved small molecules by the number of Lipinski’s four rules they break: more than 5 hydrogen-bond donors, more than 10 acceptors, more than 500 Da, or a calculated logP above 5. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="qed-chart"></div>
+        <figcaption>Approved small molecules by quantitative estimate of drug-likeness (QED), which scores eight properties against the distributions seen in oral drugs, in steps of 0.05. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="properties" data-lens="basic" data-nav="By decade">
+    <header class="head"><p class="label">Size and shape by decade</p><h2 data-finding="properties">Size and shape by decade</h2><p class="dek" id="properties-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="mw-decade-chart"></div>
+      <figcaption>Molecular weight of approved small molecules by decade of first approval as ChEMBL records it. Each box spans the middle half, the line marks the median and the whiskers run from the 5th to the 95th percentile; n is the number of drugs. Decades with few drugs are left out. Source: ChEMBL.</figcaption>
+    </figure>
+    <div class="trio">
+      <figure class="fig">
+        <div class="chart" id="logp-decade-chart"></div>
+        <figcaption>Calculated logP (ALogP) by decade, drawn the same way. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="psa-decade-chart"></div>
+        <figcaption>Topological polar surface area in Å² by decade. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="qed-decade-chart"></div>
+        <figcaption>QED by decade. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="extremes" data-lens="basic" data-nav="Structures">
+    <header class="head"><p class="label">Structures</p><h2 data-finding="extremes">Structures</h2><p class="dek" id="extremes-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="landmarks-chart"></div>
+      <figcaption>Twelve landmark small molecules, in the order they were first isolated, reported or used, drawn from ChEMBL’s 2D molfiles: carbon at each unlabelled vertex, hydrogens on carbon implied, wedges and hashes for stereochemistry. Source: ChEMBL structures.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="lightest-chart"></div>
+        <figcaption>The 15 lightest approved small molecules, molecular weight in daltons, log scale. Medical gases and ions count as small molecules in ChEMBL. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="heaviest-chart"></div>
+        <figcaption>The 15 heaviest approved small molecules, log scale; glycopeptides and cobalamins lead. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="rings" data-lens="basic" data-nav="Rings">
+    <header class="head"><p class="label">Rings</p><h2 data-finding="rings">Rings</h2><p class="dek" id="rings-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="ring-chart"></div>
+      <figcaption>The 25 commonest rings in approved small molecules, each drug counted once per kind of ring, from the smallest set of smallest rings in each molfile. Aromatic rings are found by counting π electrons; rings without a common name are described by size, heteroatoms and saturation. Source: computed from ChEMBL molfiles.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="systems-chart"></div>
+      <figcaption>The 16 commonest ring systems, fused and spiro rings taken together with their side chains stripped, each drawn from the first drug that holds it, with the number of approved small molecules that contain it. Source: computed from ChEMBL molfiles.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="ring-count-chart"></div>
+      <figcaption>Approved small molecules by number of rings; the last bar holds 10 or more. Source: computed from ChEMBL molfiles.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="atoms" data-lens="basic" data-nav="Atoms">
+    <header class="head"><p class="label">Atoms</p><h2 data-finding="atoms">Atoms</h2><p class="dek" id="atoms-dek"></p></header>
+    <figure class="fig narrow">
+      <div class="chart" id="element-chart"></div>
+      <figcaption>Share of approved small molecules that contain each element at least once, hydrogen aside; the rarest are left out. Source: computed from ChEMBL molfiles.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="fluorine-chart"></div>
+        <figcaption>Share of approved small molecules that contain fluorine or chlorine, by decade of first approval. Source: computed from ChEMBL molfiles.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="fsp3-chart"></div>
+        <figcaption>Fraction of carbon atoms with only single bonds (Fsp3), by decade; higher means less flat. Boxes drawn as above. Source: computed from ChEMBL molfiles.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="stereo" data-lens="basic" data-nav="Handedness">
+    <header class="head"><p class="label">Handedness</p><h2 data-finding="stereo">Handedness</h2><p class="dek" id="stereo-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="chirality-chart"></div>
+      <figcaption>Approved small molecules by decade of first approval and how ChEMBL records their chirality, as shares of each decade: a racemic mixture, a single stereoisomer, or achiral. Source: ChEMBL.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="stereocentre-chart"></div>
+      <figcaption>Approved small molecules by the number of stereocentres marked in their canonical SMILES; the last bar holds 10 or more. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="stems" data-lens="basic clinical" data-nav="Names">
+    <header class="head"><p class="label">Names</p><h2 data-finding="stems">Names</h2><p class="dek" id="stems-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="stem-chart"></div>
+      <figcaption>The 25 USAN stems on the most approved drugs; a drug with combined stems counts toward each. Source: ChEMBL, from the USAN Council’s stem list.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="stem-years-chart"></div>
+      <figcaption>Approved drugs carrying the six commonest stems, cumulative by the year each name was adopted as a USAN. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="flags" data-lens="basic clinical safety" data-nav="Flags">
+    <header class="head"><p class="label">Flags</p><h2 data-finding="flags">Flags</h2><p class="dek" id="flags-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="flag-chart"></div>
+        <figcaption>Approved drugs by the flags ChEMBL sets: a boxed warning on the US label, a natural product or a derivative of one, a prodrug, first in its class, an orphan designation, and withdrawn in at least one country. A drug can carry several. Source: ChEMBL.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="route-chart"></div>
+        <figcaption>Approved drugs by the routes ChEMBL records; a drug can have several. Source: ChEMBL.</figcaption>
+      </figure>
+    </div>
+    <figure class="fig narrow">
+      <div class="chart" id="availability-chart"></div>
+      <figcaption>Approved drugs by their availability in the US as ChEMBL records it, log scale. Source: ChEMBL.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="atc" data-lens="basic clinical" data-nav="ATC classes">
+    <header class="head"><p class="label">Therapeutic classes</p><h2 data-finding="atc">Therapeutic classes</h2><p class="dek" id="atc-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="atc-chart"></div>
+      <figcaption>Approved drugs by ATC anatomical main group; a drug in several groups counts in each. Source: ChEMBL ATC classifications, with the WHO’s names.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="atc3-chart"></div>
+      <figcaption>The 20 ATC pharmacological subgroups, the third level, with the most approved drugs. Source: ChEMBL; WHO ATC/DDD Index.</figcaption>
+    </figure>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 2</p>
+    <h2 class="chapter-title">Reference</h2>
+    <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
+  </div>
+
+  <section class="story wrap" id="decoder" data-nav="Decoder">
+    <header class="head"><p class="label">Identifier decoder</p><h2>What is N02BE01?</h2><p class="dek">Paste an ATC, CAS, NDC, InChIKey, ChEMBL, DrugBank, KEGG, PubChem, RxNorm or UNII identifier; an FDA, EMA, NCT or EudraCT number; a CFR citation, USP chapter or ICH guideline; a star allele or diplotype, an HLA allele, rsID or HGVS name.</p></header>
+    <label class="decoder-input"><span class="sr">Identifier</span><input id="decoder-input" type="text" placeholder="N02BE01" autocomplete="off" spellcheck="false"></label>
+    <div id="decoder-out" class="decoded" aria-live="polite"></div>
+    <div class="chips" id="examples"></div>
+  </section>
+
+  <section class="story wrap" id="sources" data-nav="Sources">
+    <header class="head"><p class="label">Sources</p><h2>Where every number comes from</h2><p class="dek" id="data-use"></p></header>
+    <div class="srcgroups" id="source-list"></div>
+  </section>
+</main>
+
+<footer class="wrap foot" id="foot"></footer>
+<div id="tip" class="tip" role="status" hidden></div>
+</body>
+</html>
