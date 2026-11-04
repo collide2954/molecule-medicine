@@ -1,8 +1,24 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS,
+  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
 } from '../../src/queries.js';
+
+test('the ADME queries ask ChEMBL for human in vivo values of approved drugs and read the FDA and CiPA tables', () => {
+  assert.deepEqual(PK_PARAMETERS.map((p) => [p.key, p.type, p.units]), [['f', 'F', '%'], ['halfLife', 'T1/2', 'hr'], ['ppb', 'PPB', '%']]);
+  const q = pkQuery(PK_PARAMETERS[0], ['CHEMBL25', 'CHEMBL3']);
+  const filters = q.query.bool.filter;
+  assert.ok(filters.some((f) => f.term?.standard_type === 'F'));
+  assert.ok(filters.some((f) => f.term?.assay_type === 'A'));
+  assert.ok(filters.some((f) => f.term?.target_organism === 'Homo sapiens'));
+  assert.ok(filters.some((f) => f.term?.standard_relation === '='));
+  assert.deepEqual(filters.find((f) => f.terms?.parent_molecule_chembl_id).terms.parent_molecule_chembl_id, ['CHEMBL25', 'CHEMBL3']);
+  assert.deepEqual(q.aggs.drugs.aggs.median.percentiles.percents, [50]);
+  assert.equal(q.size, 0);
+  assert.match(FILES.fdaInteractions, /^https:\/\/www\.fda\.gov\/drugs\/drug-interactions-labeling\/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems$/);
+  assert.match(FILES.cipaIc50, /FDA\/CiPA\/[0-9a-f]{40}\/Hill_fitting\/data\/Li2017_IC50\.csv$/);
+  assert.match(FILES.cipaDrugs, /FDA\/CiPA\/[0-9a-f]{40}\/AP_simulation\/data\/CiPA_training_drugs\.csv$/);
+});
 
 test('every source file is an https URL', () => {
   assert.ok(Object.keys(FILES).length >= 3);
