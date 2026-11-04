@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  mechanismRecords, targetRecord, classTree, classPath, targetFamily, targetClass,
+  mechanismRecords, targetRecord, classTree, classPath, targetFamily, targetClass, moleculeLabel,
 } from '../../scripts/chembl.mjs';
 import {
   gtopdbVersion, gtopdbTargets, gtopdbSummary, approvedAffinities,
@@ -63,6 +63,22 @@ test('targetFamily sorts class paths into the families drugs are counted by', ()
   assert.equal(targetFamily([]), 'Unclassified');
   assert.equal(targetFamily([], 'NUCLEIC-ACID'), 'Nucleic acid');
   assert.equal(targetFamily([], 'ORGANISM'), 'Organism or cell');
+});
+
+test('targetFamily keeps mRNA, ribosome and non-protein targets out of the protein families', () => {
+  assert.equal(targetFamily(['Unclassified protein'], 'NUCLEIC-ACID'), 'Nucleic acid');
+  assert.equal(targetFamily(['Other cytosolic protein'], 'PROTEIN NUCLEIC-ACID COMPLEX'), 'Ribosome');
+  for (const type of ['SMALL MOLECULE', 'METAL', 'OLIGOSACCHARIDE', 'LIPID', 'MACROMOLECULE']) assert.equal(targetFamily([], type), 'Non-protein molecule', type);
+  assert.equal(targetFamily([], 'SUBCELLULAR'), 'Organism or cell');
+  assert.equal(targetFamily([], 'UNKNOWN'), 'Unclassified');
+});
+
+test('moleculeLabel prefers the preferred name, then a research code, then any synonym, then the ID', () => {
+  assert.equal(moleculeLabel({ molecule_chembl_id: 'CHEMBL941', pref_name: 'IMATINIB', molecule_synonyms: [] }), 'IMATINIB');
+  const synonyms = [{ molecule_synonym: 'Ki 20227', syn_type: 'OTHER' }, { molecule_synonym: 'PD-173955', syn_type: 'RESEARCH_CODE' }];
+  assert.equal(moleculeLabel({ molecule_chembl_id: 'CHEMBL2', pref_name: null, molecule_synonyms: synonyms }), 'PD-173955');
+  assert.equal(moleculeLabel({ molecule_chembl_id: 'CHEMBL3', pref_name: null, molecule_synonyms: synonyms.slice(0, 1) }), 'Ki 20227');
+  assert.equal(moleculeLabel({ molecule_chembl_id: 'CHEMBL4', pref_name: null }), 'CHEMBL4');
 });
 
 const BANNER = '"# GtoPdb Version: 2026.3.1 - published: 2026-10-12"';
@@ -162,6 +178,15 @@ test('kinaseGroup names the kinome group from the ChEMBL class path', () => {
   assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Protein Kinase', 'CAMK protein kinase group'], 'Plasmodium falciparum'), 'Non-human');
   assert.equal(kinaseGroup([], 'Homo sapiens'), 'Unclassified');
   assert.deepEqual(KINASE_GROUPS.slice(0, 7), ['TK', 'TKL', 'STE', 'CK1', 'AGC', 'CAMK', 'CMGC']);
+});
+
+test('kinaseGroup falls back on EC numbers for kinases with no kinome group', () => {
+  assert.equal(kinaseGroup(['Enzyme', 'Transferase'], 'Homo sapiens', ['2.7.1.153', '2.7.11.1']), 'Lipid or other kinase');
+  assert.equal(kinaseGroup([], 'Homo sapiens', ['2.7.11.1', '3.1.26.-']), 'Unclassified protein kinase');
+  assert.equal(kinaseGroup([], 'Homo sapiens', ['2.7.10.1']), 'Unclassified protein kinase');
+  assert.equal(kinaseGroup(['Enzyme', 'Kinase', 'Protein Kinase', 'TK protein kinase group'], 'Homo sapiens', ['2.7.1.1']), 'TK');
+  assert.equal(kinaseGroup([], 'Homo sapiens', ['3.4.21.5']), 'Unclassified');
+  assert.ok(KINASE_GROUPS.indexOf('Unclassified protein kinase') < KINASE_GROUPS.indexOf('Lipid or other kinase'));
 });
 
 test('selectivity gives S(3 µM) and a Gini score over affinities', () => {
