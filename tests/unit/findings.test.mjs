@@ -84,6 +84,16 @@ test('systemName names common fused ring systems from their rings, in any order'
   assert.equal(systemName(['piperidine', 'pyrrolidine']), 'piperidine + pyrrolidine');
 });
 
+test('systemName names ring systems that carry oxo groups', () => {
+  assert.equal(systemName(['pyridine', 'benzene'], 1), 'quinolone');
+  assert.equal(systemName(['imidazole', 'pyrimidine'], 2), 'xanthine');
+  assert.equal(systemName(['benzene', '1,4-diazepine'], 1), '1,4-benzodiazepin-2-one');
+  assert.equal(systemName(['benzene', 'pyrrole'], 1), 'oxindole');
+  assert.equal(systemName(['β-lactam', 'thiazolidine'], 1), 'penam');
+  assert.equal(systemName(['cyclopentane', 'cyclohexane', 'cyclohexane', 'cyclohexane'], 2), 'steroid nucleus');
+  assert.equal(systemName(['piperidine'], 1), 'piperidine, with an oxo group');
+});
+
 test('findings state the molecules part as numbers', () => {
   const f = findings(fixture);
   assert.equal(f.approved, 'ChEMBL 37 counts 7 approved drugs; 5 are small molecules and 1 an antibody or antibody–drug conjugate');

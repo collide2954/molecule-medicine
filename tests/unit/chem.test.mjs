@@ -132,6 +132,16 @@ test('systemKeys gives the same key to the same ring system in different molecul
   assert.deepEqual(a[0].atoms, [0, 1, 2, 3, 4, 5]);
   const pyridine = parseMolfile(hexagon(['N', 'C', 'C', 'C', 'C', 'C'], KEKULE));
   assert.notEqual(systemKeys(pyridine)[0].key, a[0].key);
+  assert.equal(a[0].exo, 0);
+});
+
+test('systemKeys keeps exocyclic double-bonded atoms, as Bemis-Murcko frameworks do', () => {
+  const ring6 = Array.from({ length: 6 }, (_, i) => ['C', Math.cos((Math.PI / 3) * i), Math.sin((Math.PI / 3) * i)]);
+  const ketone = systemKeys(parseMolfile(molOf([...ring6, ['O', 2, 0], ['C', 0, 2]], [...cycle(6), [1, 7, 2], [2, 8, 1]])));
+  assert.deepEqual(ketone[0].atoms, [0, 1, 2, 3, 4, 5, 6]);
+  assert.equal(ketone[0].exo, 1);
+  const plain = systemKeys(parseMolfile(molOf(ring6, cycle(6))));
+  assert.notEqual(ketone[0].key, plain[0].key);
 });
 
 test('fsp3, stereocentres and elementCounts describe a molecule', () => {
