@@ -26,6 +26,13 @@ export const runSections = async (sections, { now = new Date(), previous = {}, o
   return out;
 };
 
+const entry = ([key, value]) => {
+  if (Array.isArray(value) && value.length) return `${JSON.stringify(key)}: [\n${value.map((v) => JSON.stringify(v)).join(',\n')}\n]`;
+  return `${JSON.stringify(key)}: ${JSON.stringify(value)}`;
+};
+
+export const toModule = (value) => `export default {\n${Object.entries(value).map(entry).join(',\n')}\n};\n`;
+
 export const diffCounts = (before, after) => {
   if (!before) return [];
   return Object.keys(after)
