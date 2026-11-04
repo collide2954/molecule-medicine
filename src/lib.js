@@ -87,6 +87,17 @@ const csvCell = (v) => {
 
 export const toCsv = (columns, rows) => `${[columns, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n')}\r\n`;
 
+export const retry = async (fn, { tries = 3, wait = 1000 } = {}) => {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempt >= tries) throw error;
+      await new Promise((r) => setTimeout(r, wait * 2 ** (attempt - 1)));
+    }
+  }
+};
+
 const scaled = (units) => (v) => {
   const n = toNumber(v);
   if (!Number.isFinite(n)) return '—';
