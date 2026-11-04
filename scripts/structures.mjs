@@ -30,11 +30,18 @@ export const gpcrdbSummary = (list) => {
     methods[m] ??= years.map(() => 0);
     methods[m][years.indexOf(Number(String(s.publication_date).slice(0, 4)))] += 1;
   }
+  const byClass = {};
+  for (const s of list) {
+    byClass[s.class] ??= {};
+    byClass[s.class][s.state] = (byClass[s.class][s.state] ?? 0) + 1;
+  }
   return {
     total: list.length,
     human: list.filter((s) => s.species === 'Homo sapiens').length,
+    receptors: new Set(list.map((s) => s.protein)).size,
     classes: tally(list, (s) => s.class),
     states: tally(list, (s) => s.state),
+    byClass,
     signalling: tally(list.filter((s) => s.signalling_protein), (s) => s.signalling_protein.type),
     ligands: tally(list.flatMap((s) => (s.ligands ?? []).map((l) => l.function)), (f) => f),
     years,
