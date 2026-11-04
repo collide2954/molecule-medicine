@@ -646,7 +646,9 @@ export const hexmap = ({
     }) : null,
     box && boxLabel ? el('text', { class: 'ro5-lab', x: x(box.x) - 4, y: y(box.y) - 6, 'text-anchor': 'end' }, boxLabel) : null);
   hover(svg, (k) => describe(bins[Number(k)].members.map((m) => inside[m]), bins[Number(k)]));
-  return mountSvg(mount, svg, rampLegend(1, most, (v) => exact(v), 'var(--ink)'));
+  const steps = [...new Set(Array.from({ length: 5 }, (_, k) => Math.max(1, Math.round(Math.exp((Math.log(most) * k) / 4)))))];
+  const legend = html('ul', { class: 'legend ramp' }, steps.map((v) => html('li', {}, html('i', { style: `background:var(--ink);opacity:${heat(Math.log1p(v), 0, Math.log1p(most))}` }), exact(v))));
+  return mountSvg(mount, svg, legend);
 };
 
 export const boxes = ({

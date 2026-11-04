@@ -741,6 +741,10 @@ h2,
   fill: var(--accent-text);
   font-size: 11px;
   font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .chart .box {
