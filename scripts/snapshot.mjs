@@ -6,9 +6,15 @@ import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { retry } from '../src/lib.js';
 import {
-  FILES, USER_AGENT, CHEMBL, RCSB_YEARS,
+  FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS,
 } from '../src/queries.js';
-import { cacheName, downloadTo } from './streams.mjs';
+import {
+  cacheName, downloadTo, unzip, bufferLines,
+} from './streams.mjs';
+import {
+  activitySummary, kineticPairs, agreementPairs,
+} from './bioactivity.mjs';
+import { almanacNames, almanacScores } from './almanac.mjs';
 import { runSections, toModule } from './sections.mjs';
 import {
   chemblStatus, approvedDrugs, atcNames, pages, ringSystemTable, mechanismRecords, targetRecord, classTree, targetClass, moleculeLabel,
@@ -126,8 +132,34 @@ const network = async () => {
 
 const round = (v, digits) => Number(v.toFixed(digits));
 
-const kinome = async () => {
-  const acts = await pages(chemblJson, relative(FILES.davis), 'activities');
+const esSearch = (body) => posted(FILES.chemblSearch, body);
+
+const ACTIVITY_FIELDS = [
+  'activity_id', 'molecule_chembl_id', 'parent_molecule_chembl_id', 'molecule_pref_name', 'target_chembl_id', 'target_pref_name', 'target_organism', 'assay_chembl_id', 'assay_description', 'assay_variant_mutation',
+  'standard_type', 'standard_value', 'standard_units', 'standard_relation', 'pchembl_value',
+];
+
+const esDocument = async (doc) => {
+  const rows = [];
+  let after = null;
+  for (;;) {
+    const body = {
+      size: 5000, query: { term: { document_chembl_id: doc } }, sort: [{ activity_id: 'asc' }], _source: ACTIVITY_FIELDS, ...(after ? { search_after: after } : {}),
+    };
+    const hits = (await esSearch(body)).hits?.hits ?? [];
+    rows.push(...hits.map((h) => h._source));
+    if (hits.length < 5000) return rows;
+    after = hits.at(-1).sort;
+  }
+};
+
+const activities = async () => {
+  const names = new Map((await pages(chemblJson, relative(FILES.chemblSources), 'sources')).map((s) => [s.src_id, s.src_description]));
+  return activitySummary(await esSearch(ACTIVITY_AGGS), names);
+};
+
+const kinomeData = memo(async () => {
+  const acts = await esDocument(DOCUMENTS.davis);
   const details = new Map((await targetDetails(new Set(acts.map((a) => a.target_chembl_id)))).map((t) => [t.id, t]));
   const m = davisMatrix(acts, (id) => kinaseGroup(details.get(id)?.path ?? [], details.get(id)?.organism, details.get(id)?.ec ?? []));
   const only = 'molecule_chembl_id,pref_name,molecule_synonyms,molecule_hierarchy';
@@ -147,6 +179,18 @@ const kinome = async () => {
     kinases: m.kinases.map((k) => ({ ...k, gene: details.get(k.target)?.genes?.[0] ?? null })),
     pkd: m.pkd,
   };
+});
+
+const kinome = () => kinomeData();
+
+const agreement = async () => ({ document: DOCUMENTS.karaman, ...agreementPairs(await kinomeData(), await esDocument(DOCUMENTS.karaman)) });
+
+const kinetics = async () => ({ document: DOCUMENTS.k4dd, pairs: kineticPairs(await esDocument(DOCUMENTS.k4dd)) });
+
+const almanac = async () => {
+  const names = almanacNames(await text(FILES.almanacNames));
+  const [, csv] = Object.entries(unzip(await readFile(await file(FILES.almanac)))).find(([name]) => /\.csv$/i.test(name));
+  return almanacScores(bufferLines(csv), names);
 };
 
 const gtopdb = async () => {
@@ -179,7 +223,7 @@ const structures = async () => {
 };
 
 const SECTIONS = {
-  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures,
+  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac,
 };
 
 const now = new Date();
