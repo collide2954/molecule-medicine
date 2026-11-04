@@ -26,7 +26,7 @@ const rows = function* rows(source) {
       continue;
     }
     yield {
-      nsc1: f[col.NSC1], nsc2: f[col.NSC2], i1: f[col.CONCINDEX1], i2: f[col.CONCINDEX2], dose1: `${f[col.CONC1]}${f[col.CONCUNIT1]}`, dose2: `${f[col.CONC2]}${f[col.CONCUNIT2]}`, growth: Number(f[col.PERCENTGROWTH]), cell: f[col.CELLNAME],
+      nsc1: f[col.NSC1], nsc2: f[col.NSC2], i1: f[col.CONCINDEX1], i2: f[col.CONCINDEX2], dose1: `${f[col.CONC1]}${f[col.CONCUNIT1]}`, dose2: `${f[col.CONC2]}${f[col.CONCUNIT2]}`, growth: Number(f[col.PERCENTGROWTH]), cell: f[col.CELLNAME], lab: f[col.SCREENER],
     };
   }
 };
@@ -41,8 +41,8 @@ export const almanacScores = (source, names = new Map()) => {
   };
   for (const r of rows(source)) {
     if (!Number.isFinite(r.growth)) continue;
-    if (r.i1 !== '0' && r.i2 === '0') add(`${r.nsc1}|${r.dose1}|${r.cell}`, r.growth);
-    else if (r.i1 === '0' && r.i2 !== '0') add(`${r.nsc2}|${r.dose2}|${r.cell}`, r.growth);
+    if (r.i1 !== '0' && r.i2 === '0') add(`${r.lab}|${r.nsc1}|${r.dose1}|${r.cell}`, r.growth);
+    else if (r.i1 === '0' && r.i2 !== '0') add(`${r.lab}|${r.nsc2}|${r.dose2}|${r.cell}`, r.growth);
   }
   const base = new Map([...singles].map(([key, list]) => [key, median(list)]));
   const pairs = new Map();
@@ -50,8 +50,8 @@ export const almanacScores = (source, names = new Map()) => {
   let wells = 0;
   for (const r of rows(source)) {
     if (r.i1 === '0' || r.i2 === '0' || !Number.isFinite(r.growth)) continue;
-    const g1 = base.get(`${r.nsc1}|${r.dose1}|${r.cell}`);
-    const g2 = base.get(`${r.nsc2}|${r.dose2}|${r.cell}`);
+    const g1 = base.get(`${r.lab}|${r.nsc1}|${r.dose1}|${r.cell}`);
+    const g2 = base.get(`${r.lab}|${r.nsc2}|${r.dose2}|${r.cell}`);
     if (g1 === undefined || g2 === undefined) continue;
     const [a, b] = [r.nsc1, r.nsc2].sort((x, y) => Number(x) - Number(y));
     const key = `${a}|${b}`;
