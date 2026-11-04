@@ -16,6 +16,23 @@ const capital = (s) => (s ? `${s[0].toUpperCase()}${s.slice(1)}` : s);
 
 export const drugName = (name) => String(name ?? '').toLowerCase();
 
+const SYSTEMS = {
+  'benzene|pyrrole': 'indole', 'imidazole|pyrimidine': 'purine', 'benzene|benzene': 'naphthalene', 'dihydrothiazine|β-lactam': 'cephem', 'thiazolidine|β-lactam': 'penam',
+  '1,4-diazepine|benzene': '1,4-benzodiazepine', 'benzene|imidazole': 'benzimidazole', 'benzene|pyridine': 'quinoline or isoquinoline', 'benzene|pyrimidine': 'quinazoline',
+  'benzene|pyrazine': 'quinoxaline', 'benzene|thiophene': 'benzothiophene', 'benzene|furan': 'benzofuran', 'benzene|thiazole': 'benzothiazole', 'benzene|oxazole': 'benzoxazole',
+  'benzene|pyrazole': 'indazole', '6-ring, S1N1, partly unsaturated|benzene|benzene': 'phenothiazine', 'benzene|benzene|benzene': 'anthracene or phenanthrene',
+};
+
+const STEROID = (sorted) => sorted.length === 4 && sorted.filter((r) => r === 'cyclopentane').length === 1
+  && sorted.filter((r) => r !== 'cyclopentane').every((r) => /^(cyclohexane|benzene|6-ring, carbocyclic, partly unsaturated)$/.test(r));
+
+export const systemName = (rings) => {
+  const sorted = [...rings].sort();
+  if (sorted.length === 1) return sorted[0];
+  if (STEROID(sorted)) return 'steroid nucleus';
+  return SYSTEMS[sorted.join('|')] ?? sorted.join(' + ');
+};
+
 export const release = (snap) => String(snap.chembl.release).replace('_', ' ');
 
 export const smallMolecules = (snap) => snap.drugs.filter((d) => d.type === 'Small molecule');
