@@ -117,8 +117,8 @@ test('agreementPairs matches Karaman 2008 to Davis 2011 by parent compound, targ
 });
 
 const HEAD = 'COMBODRUGSEQ,SCREENER,STUDY,TESTDATE,PLATE,PANELNBR,CELLNBR,PREFIX1,NSC1,SAMPLE1,CONCINDEX1,CONC1,CONCUNIT1,PREFIX2,NSC2,SAMPLE2,CONCINDEX2,CONC2,CONCUNIT2,PERCENTGROWTH,PERCENTGROWTHNOTZ,TESTVALUE,CONTROLVALUE,TZVALUE,EXPECTEDGROWTH,SCORE,VALID,PANEL,CELLNAME';
-const alone = (nsc, conc, growth, cell) => `1,FG,S1,06/23/2011,P1,9,18,S,${nsc},37,1,${conc},M,,,,0,,,${growth},${growth},1,1,1,,,Y,Panel,${cell}`;
-const pair = (nsc1, conc1, nsc2, conc2, growth, cell) => `2,FG,S1,06/23/2011,P1,9,18,S,${nsc1},37,1,${conc1},M,S,${nsc2},10,2,${conc2},M,${growth},${growth},1,1,1,0,-999,Y,Panel,${cell}`;
+const alone = (nsc, conc, growth, cell, lab = 'FG') => `1,${lab},S1,06/23/2011,P1,9,18,S,${nsc},37,1,${conc},M,,,,0,,,${growth},${growth},1,1,1,,,Y,Panel,${cell}`;
+const pair = (nsc1, conc1, nsc2, conc2, growth, cell, lab = 'FG') => `2,${lab},S1,06/23/2011,P1,9,18,S,${nsc1},37,1,${conc1},M,S,${nsc2},10,2,${conc2},M,${growth},${growth},1,1,1,0,-999,Y,Panel,${cell}`;
 
 test('almanacNames keeps the first name given for each NSC number', () => {
   const names = almanacNames('740\tMethotrexate\n752\tThioguanine\n752\t6-Thioguanine\n3088\tChlorambucil\n');
@@ -126,10 +126,11 @@ test('almanacNames keeps the first name given for each NSC number', () => {
   assert.equal(names.size, 3);
 });
 
-test('almanacScores scores each pair against the median single-drug growth across plates, per cell line, then averages', () => {
+test('almanacScores scores each pair against the median single-drug growth across one lab’s plates, per cell line, then averages', () => {
   const lines = [
     HEAD,
-    alone(752, '1.00E-07', 80, '786-0'), alone(752, '1.00E-07', 60, '786-0'), alone(3088, '1.00E-06', 50, '786-0'), alone(3088, '1.00E-05', -20, '786-0'),
+    alone(752, '1.00E-07', 80, '786-0'), alone(752, '1.00E-07', 60, '786-0'), alone(752, '1.00E-07', 10, '786-0', 'FF'), alone(3088, '1.00E-06', 50, '786-0'), alone(3088, '1.00E-05', -20, '786-0'),
+    pair(752, '1.00E-07', 3088, '1.00E-06', 0, '786-0', 'FF'),
     alone(752, '1.00E-07', 90, 'K-562'), alone(3088, '1.00E-06', 40, 'K-562'), alone(740, '1.00E-08', 100, '786-0'),
     pair(752, '1.00E-07', 3088, '1.00E-06', 20, '786-0'), pair(752, '1.00E-07', 3088, '1.00E-05', -30, '786-0'),
     pair(3088, '1.00E-06', 752, '1.00E-07', 30, 'K-562'), pair(740, '1.00E-08', 752, '1.00E-07', 40, '786-0'), pair(740, '1.00E-07', 752, '1.00E-07', 10, '786-0'),
