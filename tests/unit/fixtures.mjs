@@ -281,6 +281,40 @@ export const PART3 = {
   },
 };
 
+const link = (system, role, strength) => ({ system, role, strength });
+
+export const PART4 = {
+  pk: {
+    f: [{ id: 'a', median: 90, n: 2 }, { id: 'b', median: 30, n: 1 }, { id: 'c', median: 60, n: 1 }],
+    halfLife: [{ id: 'a', median: 4, n: 1 }, { id: 'b', median: 12, n: 1 }, { id: 'c', median: 0.5, n: 1 }],
+    ppb: [{ id: 'a', median: 99, n: 1 }, { id: 'b', median: 50, n: 1 }],
+  },
+  ddi: {
+    rows: [
+      { drug: 'clarithromycin', links: [link('3A', 'inhibitor', 'strong'), link('P-gp', 'inhibitor', 'transporter')] },
+      { drug: 'rifampin', links: [link('3A', 'inducer', 'strong'), link('2C19', 'inducer', 'strong'), link('OATP1B1', 'inhibitor', 'transporter')] },
+      { drug: 'midazolam', links: [link('3A', 'substrate', 'sensitive')] },
+    ],
+  },
+  cipa: {
+    commit: '539ff80d6616895de5d943e7bfb77b346d195db4',
+    rows: [
+      {
+        drug: 'dofetilide', risk: 'high', cmax: 2, ic50: { ICaL: 260, hERG: 5 }, margin: { ICaL: 130, hERG: 2.5 },
+      },
+      {
+        drug: 'sotalol', risk: 'high', cmax: 14690, ic50: { ICaL: null, hERG: 110600 }, margin: { ICaL: null, hERG: 7.53 },
+      },
+      {
+        drug: 'verapamil', risk: 'low', cmax: 81, ic50: { ICaL: 202, hERG: 288 }, margin: { ICaL: 2.49, hERG: 3.56 },
+      },
+      {
+        drug: 'diltiazem', risk: 'low', cmax: 122, ic50: { ICaL: 112, hERG: 13150 }, margin: { ICaL: 0.92, hERG: 108 },
+      },
+    ],
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
