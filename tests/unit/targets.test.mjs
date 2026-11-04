@@ -10,7 +10,7 @@ import {
   davisMatrix, selectivity, kinaseGroup, KINASE_GROUPS,
 } from '../../scripts/kinome.mjs';
 import { rcsbByYear, gpcrdbSummary } from '../../scripts/structures.mjs';
-import { forceLayout } from '../../scripts/layout.mjs';
+import { forceLayout, components, packedLayout } from '../../scripts/layout.mjs';
 import { drugTargetNetwork } from '../../scripts/network.mjs';
 
 test('mechanismRecords keeps parent drug, target, action and directness, dropping mechanisms with no target', () => {
@@ -247,6 +247,21 @@ test('drugTargetNetwork links each known drug to each known target once and coun
     { id: 'T2', kind: 'target', name: 'beta', group: 'Kinase', degree: 1 },
   ]);
   assert.deepEqual(net.edges, [[0, 2], [0, 3], [1, 2]]);
+});
+
+test('components lists connected components from the largest, ties by first node', () => {
+  assert.deepEqual(components(8, [[0, 1], [1, 2], [3, 4], [6, 5]]), [[0, 1, 2], [3, 4], [5, 6], [7]]);
+});
+
+test('packedLayout lays each component out in its own block, largest first, inside the unit square', () => {
+  const edges = [[0, 1], [1, 2], [2, 0], [2, 3], [4, 5], [6, 7]];
+  const a = packedLayout(8, edges, { iterations: 100 });
+  assert.deepEqual(a, packedLayout(8, edges, { iterations: 100 }));
+  for (const [x, y] of a) assert.ok(x >= 0 && x <= 1 && y >= 0 && y <= 1, `${x},${y}`);
+  const d = (i, j) => Math.hypot(a[i][0] - a[j][0], a[i][1] - a[j][1]);
+  assert.ok(d(4, 5) < d(4, 6) && d(6, 7) < d(5, 7));
+  assert.ok(d(0, 1) < d(0, 4) && d(2, 3) < d(3, 6));
+  assert.ok(Math.max(...a.map(([, y]) => y)) <= 1 && Math.max(...a.map(([x]) => x)) === 1);
 });
 
 test('forceLayout is deterministic, keeps nodes in the unit square and pulls linked nodes together', () => {
