@@ -1,4 +1,6 @@
-import { parseMolfile, packMol } from '../src/chem.js';
+import {
+  parseMolfile, packMol, unpackMol, describeMol, systemKeys,
+} from '../src/chem.js';
 
 const num = (v) => (v === null || v === undefined || v === '' ? null : Number(v));
 
@@ -45,6 +47,7 @@ export const drugRecord = (m) => {
     smiles: s?.canonical_smiles ?? null,
     inchikey: s?.standard_inchi_key ?? null,
     mol: mol ? packMol(mol) : null,
+    chem: mol ? describeMol(mol, s?.canonical_smiles) : null,
     chirality: m.chirality ?? null,
     availability: m.availability_type ?? null,
     flags: FLAGS.filter(([k]) => m[k] === 1 || m[k] === true).map(([, label]) => label),
@@ -58,6 +61,21 @@ export const approvedDrugs = (molecules) => molecules
   .filter((m) => (m.molecule_hierarchy?.parent_chembl_id ?? m.molecule_chembl_id) === m.molecule_chembl_id)
   .map(drugRecord)
   .sort((a, b) => idNumber(a.id) - idNumber(b.id));
+
+export const ringSystemTable = (drugs, top) => {
+  const table = new Map();
+  for (const d of drugs) {
+    if (!d.mol) continue;
+    const seen = new Set();
+    for (const s of systemKeys(unpackMol(d.mol))) {
+      if (seen.has(s.key)) continue;
+      seen.add(s.key);
+      if (!table.has(s.key)) table.set(s.key, { key: s.key, n: 0, example: d.id, atoms: s.atoms, rings: s.rings });
+      table.get(s.key).n += 1;
+    }
+  }
+  return [...table.values()].sort((a, b) => b.n - a.n || a.key.localeCompare(b.key)).slice(0, top);
+};
 
 export const atcNames = (rows) => {
   const out = {};

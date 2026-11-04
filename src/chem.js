@@ -293,6 +293,52 @@ export const ringName = (mol, ring, aromatic) => {
   return `${ring.length}-ring, ${tag}, ${state}`;
 };
 
+const fnv = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+};
+
+export const systemKeys = (mol) => {
+  const rs = rings(mol);
+  const aromatic = aromaticRings(mol);
+  return ringSystems(mol).map((system) => {
+    const inside = new Set(system.atoms);
+    const aromaticAtoms = new Set(system.rings.filter((i) => aromatic[i]).flatMap((i) => rs[i]));
+    const sameAromatic = (a, b) => system.rings.some((i) => aromatic[i] && rs[i].includes(a) && rs[i].includes(b));
+    const edges = mol.bonds.filter((b) => inside.has(b.a) && inside.has(b.b)).map((b) => ({ ...b, label: sameAromatic(b.a, b.b) ? 'a' : String(b.order) }));
+    let labels = new Map(system.atoms.map((i) => [i, `${mol.atoms[i].el}${aromaticAtoms.has(i) ? 'a' : ''}${mol.atoms[i].charge || ''}`]));
+    for (let round = 0; round < 3; round += 1) {
+      const next = new Map();
+      for (const i of system.atoms) {
+        const around = edges.filter((e) => e.a === i || e.b === i).map((e) => `${e.label}${labels.get(e.a === i ? e.b : e.a)}`).sort().join(',');
+        next.set(i, fnv(`${labels.get(i)}(${around})`));
+      }
+      labels = next;
+    }
+    return {
+      key: `${system.atoms.length}.${system.rings.length}.${fnv([...labels.values()].sort().join('|'))}`,
+      atoms: system.atoms,
+      rings: system.rings.map((i) => ringName(mol, rs[i], aromatic[i])),
+    };
+  });
+};
+
+export const describeMol = (mol, smiles) => {
+  const rs = rings(mol);
+  const aromatic = aromaticRings(mol);
+  return {
+    rings: rs.map((r, i) => ringName(mol, r, aromatic[i])),
+    systems: ringSystems(mol).length,
+    fsp3: Number(fsp3(mol).toFixed(3)),
+    stereo: stereocentres(smiles),
+    elements: [...new Set(mol.atoms.map((a) => a.el).filter((el) => el !== 'H'))].sort(),
+  };
+};
+
 export const fsp3 = (mol) => {
   const multiple = new Set(mol.bonds.filter((b) => b.order !== 1).flatMap((b) => [b.a, b.b]));
   const carbons = mol.atoms.map((a, i) => [a, i]).filter(([a]) => a.el === 'C');
