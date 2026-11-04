@@ -11,6 +11,7 @@ import {
 import {
   targetHierarchy, familyCounts, familyActions, topTargets, networkGraph, gtopdbRows, affinityByType,
 } from '../../src/targets.js';
+import { efficiencyPoints, agreementStats } from '../../src/bioactivity.js';
 
 let server;
 let browser;
@@ -48,8 +49,14 @@ const tipLinesOf = (page) => page.$$eval('#tip > *', (els) => els.map((e) => e.t
 const CHAPTERS = {
   molecules: ['approved', 'druglike', 'properties', 'extremes', 'rings', 'atoms', 'stereo', 'stems', 'flags', 'atc'],
   targets: ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures'],
+  bioactivity: ['record', 'potency', 'efficiency', 'agreement', 'kinetics', 'theory', 'combinations'],
   reference: ['decoder', 'sources'],
 };
+
+const slide = (page, sel, value) => page.$eval(sel, (el, v) => {
+  el.value = v;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}, String(value));
 
 before(async () => {
   server = await start(0);
@@ -258,6 +265,71 @@ test('structure charts stack PDB releases by method and count GPCR structures', 
   const G = snapshot.structures.gpcrdb;
   assert.equal(await page.locator('#gpcr-chart [data-row]').count(), Object.keys(G.classes).length);
   assert.equal(await page.locator('#gpcr-years-chart path[data-key]').count(), Object.keys(G.methods).length);
+  await page.close();
+});
+
+test('the measurement record counts activities by type, year, source and format', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#type-chart [data-row]').count(), 20);
+  assert.ok(await page.locator('#year-chart [data-k]').count() >= 40);
+  assert.ok(await page.locator('#source-chart [data-row]').count() >= 10);
+  assert.ok(await page.locator('#format-chart [data-row]').count() >= 6);
+  await page.close();
+});
+
+test('potency lines compare assay types, and approved drugs are set against all measurements', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#pchembl-chart path.line').count(), snapshot.activities.byType.length);
+  assert.equal(await page.locator('#approved-potency-chart .legend li').count(), 2);
+  assert.equal(await page.locator('#measured-chart [data-row]').count(), 15);
+  await page.close();
+});
+
+test('efficiency scatters carry iso-efficiency lines', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#le-chart circle.pt').count(), efficiencyPoints(snapshot).length);
+  assert.ok(await page.locator('#le-chart line.ref').count() >= 2);
+  assert.ok(await page.locator('#lle-chart line.ref').count() >= 2);
+  await page.close();
+});
+
+test('agreement plots pair kinobeads with KINOMEscan and mark the bias and limits', async () => {
+  const { page } = await open();
+  const s = agreementStats(snapshot, 'klaeger');
+  assert.equal(await page.locator('#agree-chart circle.pt').count(), s.n);
+  assert.equal(await page.locator('#bland-chart circle.pt').count(), s.n);
+  assert.equal(await page.locator('#bland-chart line.ref').count(), 3);
+  assert.match(await page.textContent('#agreement .dek'), /Karaman/);
+  await page.close();
+});
+
+test('the kinetic map places every K4DD pair against lines of equal affinity', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#kinetic-map circle.pt').count(), snapshot.kinetics.pairs.length);
+  assert.ok(await page.locator('#kinetic-map line.ref').count() >= 4);
+  assert.ok(await page.locator('#residence-chart [data-target]').count() >= 3);
+  await page.close();
+});
+
+test('the receptor theory explorers redraw when their sliders move', async () => {
+  const { page } = await open();
+  const responseBefore = await page.getAttribute('#occupancy-chart path.line >> nth=1', 'd');
+  await slide(page, '#log-tau', 2.5);
+  assert.notEqual(await page.getAttribute('#occupancy-chart path.line >> nth=1', 'd'), responseBefore);
+  assert.match(await page.textContent('#occupancy-out'), /EC50[\s\S]*Emax[\s\S]*occupied/);
+  const curveBefore = await page.getAttribute('#binding-chart path.line', 'd');
+  await slide(page, '#log-koff', -1);
+  assert.notEqual(await page.getAttribute('#binding-chart path.line', 'd'), curveBefore);
+  assert.match(await page.textContent('#binding-out'), /residence time[\s\S]*half-life/);
+  await page.close();
+});
+
+test('the ALMANAC matrix lays out every drug pair and ranks the strongest', async () => {
+  const { page } = await open();
+  const n = snapshot.almanac.drugs.length;
+  assert.equal(await page.locator('#combo-chart [data-cell]').count(), n * n);
+  assert.equal(await page.locator('#combo-top-chart [data-row]').count(), 20);
+  assert.ok(await page.locator('#combo-dist-chart [data-bin]').count() >= 10);
   await page.close();
 });
 
