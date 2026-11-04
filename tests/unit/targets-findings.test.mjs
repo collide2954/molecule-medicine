@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PART2 } from './fixtures.mjs';
 import {
-  familyCounts, actionCounts, familyActions, topTargets, degreeBins, targetHierarchy, classCounts, ecCounts, networkGraph, gtopdbRows, affinityByType, kinomeGroups, kinomeOrder, targetFindings,
+  familyCounts, actionCounts, familyActions, topTargets, degreeBins, targetHierarchy, classCounts, ecCounts, networkGraph, networkPieces, gtopdbRows, affinityByType, kinomeGroups, kinomeOrder, targetFindings,
 } from '../../src/targets.js';
 
 const drugs = [
@@ -76,6 +76,14 @@ test('networkGraph names the laid-out nodes and counts their links', () => {
     id: 'T2', kind: 'target', name: 'Histamine H1 receptor', group: 'GPCR', degree: 2, x: 0.15, y: 0.25,
   });
   assert.deepEqual(g.edges, PART2.network.edges);
+});
+
+test('networkPieces counts drugs, targets and target families in each connected piece, largest first', () => {
+  assert.deepEqual(networkPieces(snap), [
+    { drugs: 2, targets: 2, families: [{ family: 'GPCR', n: 2 }] },
+    { drugs: 2, targets: 2, families: [{ family: 'Kinase', n: 1 }, { family: 'Other enzyme', n: 1 }] },
+    { drugs: 1, targets: 1, families: [{ family: 'Other protein', n: 1 }] },
+  ]);
 });
 
 test('gtopdbRows splits each target type by its ligands, and affinityByType summarises approved affinities', () => {
