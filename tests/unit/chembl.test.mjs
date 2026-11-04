@@ -80,7 +80,7 @@ test('drugRecord lists the flags ChEMBL sets and leaves out missing structure an
 
 test('approvedDrugs keeps parent compounds only, in ChEMBL ID order', () => {
   const salt = molecule({ molecule_chembl_id: 'CHEMBL1200', pref_name: 'ASPIRIN SODIUM', molecule_hierarchy: { parent_chembl_id: 'CHEMBL25', molecule_chembl_id: 'CHEMBL1200' } });
-  const other = molecule({ molecule_chembl_id: 'CHEMBL3', pref_name: 'NICOTINE' });
+  const other = molecule({ molecule_chembl_id: 'CHEMBL3', pref_name: 'NICOTINE', molecule_hierarchy: { parent_chembl_id: 'CHEMBL3', molecule_chembl_id: 'CHEMBL3' } });
   assert.deepEqual(approvedDrugs([salt, molecule(), other]).map((d) => d.id), ['CHEMBL3', 'CHEMBL25']);
 });
 
