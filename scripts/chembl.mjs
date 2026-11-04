@@ -125,6 +125,11 @@ export const targetFamily = (path, type) => {
   return 'Other protein';
 };
 
+export const targetClass = (classIds, tree, type) => {
+  const path = classIds.map((id) => classPath(tree, id)).reduce((best, p) => (p.length > best.length ? p : best), []);
+  return { family: targetFamily(path, type), path };
+};
+
 export const atcNames = (rows) => {
   const out = {};
   for (const r of rows) {
