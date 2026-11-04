@@ -24,7 +24,7 @@ export const ddiRows = (html) => {
   if (!table) return [];
   const clean = (name) => {
     const s = name.replace(/[\d,\s]+$/, '').trim();
-    return s.length > 1 && s[1] === s[1].toLowerCase() ? `${s[0].toLowerCase()}${s.slice(1)}` : s;
+    return s.length > 1 && s.slice(1) === s.slice(1).toLowerCase() ? `${s[0].toLowerCase()}${s.slice(1)}` : s;
   };
   return table.rows.filter((r) => r[0]).map((r) => ({
     drug: clean(r[0]),
