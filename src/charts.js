@@ -536,11 +536,16 @@ export const treemap = ({ mount, items, height, aria, describe }) => {
   const W = widthOf(mount);
   const H = height ?? Math.round(Math.min(460, Math.max(260, W * 0.5)));
   const rects = squarify(items, W, H);
+  const fit = (text, w, px) => {
+    const room = Math.floor((w - 14) / px);
+    const s = String(text);
+    return s.length <= room ? s : `${s.slice(0, Math.max(1, room - 1)).trimEnd()}…`;
+  };
   const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': aria },
     rects.map((r, i) => el('g', { 'data-key': r.key, 'data-k': items.findIndex((it) => it.key === r.key) },
-      el('rect', { class: 'cell', x: r.x, y: r.y, width: Math.max(0, r.w - 1), height: Math.max(0, r.h - 1), style: `fill:${r.color ?? 'var(--data-2)'};--i:${i * 3}` }),
-      r.w > 46 && r.h > 22 ? el('text', { class: 'tile-lab', x: r.x + 7, y: r.y + 17 }, r.label) : null,
-      r.w > 74 && r.h > 40 ? el('text', { class: 'tile-sub', x: r.x + 7, y: r.y + 33 }, r.sub) : null)));
+      el('rect', { class: 'cell', x: r.x, y: r.y, width: Math.max(0, r.w - 1), height: Math.max(0, r.h - 1), style: `fill:${r.color ?? 'var(--data)'};--i:${i * 3}` }),
+      r.w > 46 && r.h > 22 ? el('text', { class: 'tile-lab', x: r.x + 7, y: r.y + 17 }, fit(r.label, r.w, 7.4)) : null,
+      r.w > 74 && r.h > 40 ? el('text', { class: 'tile-sub', x: r.x + 7, y: r.y + 33 }, fit(r.sub, r.w, 6.4)) : null)));
   hover(svg, (k) => describe(items[Number(k)]));
   return mountSvg(mount, svg);
 };
@@ -576,7 +581,7 @@ export const lines = ({
       el('line', { class: t === 0 && lo < 0 ? 'base' : 'grid', x1: L, x2: W - R, y1: y(t), y2: y(t) }),
       el('text', { class: 'tick', x: L - 8, y: y(t) + 4, 'text-anchor': 'end' }, yFormat(t)))),
     el('line', { class: 'base', x1: L, x2: W - R, y1: H - B, y2: H - B }),
-    xs.map((v) => ((v - xs[0]) % (step * dx) === 0 ? el('text', { class: 'tick', x: x(v), y: H - 6, 'text-anchor': 'middle' }, v) : null)),
+    xs.map((v) => (v % (step * dx) === 0 ? el('text', { class: 'tick', x: x(v), y: H - 6, 'text-anchor': 'middle' }, v) : null)),
     series.map((s, n) => {
       const last = s.rows.at(-1);
       const ly = labelY[n];
