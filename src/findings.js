@@ -1,5 +1,5 @@
 import { exact, pct, soften } from './lib.js';
-import { summary } from './stats.js';
+import { summary, quantile } from './stats.js';
 
 const count = (list, key) => {
   const out = new Map();
@@ -46,15 +46,21 @@ export const typeGroups = (snap) => ranked(count(snap.drugs, (d) => d.type), 'ty
 const enough = (snap) => Math.max(2, Math.floor(smallMolecules(snap).length / 20));
 
 export const propertyByDecade = (snap, key, min = enough(snap)) => {
+  const read = typeof key === 'function' ? key : (d) => d.p?.[key];
   const groups = new Map();
   for (const d of smallMolecules(snap)) {
-    const v = d.p?.[key];
+    const v = read(d);
     const dec = decadeOf(d.year);
     if (dec === null || v === null || v === undefined) continue;
     if (!groups.has(dec)) groups.set(dec, []);
     groups.get(dec).push(v);
   }
-  return [...groups].filter(([, v]) => v.length >= min).sort((a, b) => a[0] - b[0]).map(([decade, v]) => ({ decade, n: v.length, summary: summary(v) }));
+  return [...groups].filter(([, v]) => v.length >= min).sort((a, b) => a[0] - b[0]).map(([decade, v]) => {
+    const sorted = [...v].sort((a, b) => a - b);
+    return {
+      decade, n: v.length, summary: summary(v), p5: Number(quantile(sorted, 0.05).toPrecision(12)), p95: Number(quantile(sorted, 0.95).toPrecision(12)),
+    };
+  });
 };
 
 const complete = (snap, rows) => rows.filter((r) => r.decade + 10 <= yearOfSnapshot(snap));
