@@ -189,9 +189,15 @@ test('rcsbByYear folds experimental methods into four groups by release year', (
 
 test('gpcrdbSummary counts GPCR structures by class, method, state and year', () => {
   const s = gpcrdbSummary([
-    { class: 'Class A (Rhodopsin)', type: 'X-ray diffraction', state: 'Inactive', publication_date: '2007-10-25', species: 'Homo sapiens' },
-    { class: 'Class A (Rhodopsin)', type: 'Electron microscopy', state: 'Active', publication_date: '2022-08-03', species: 'Homo sapiens' },
-    { class: 'Class B1 (Secretin)', type: 'Electron microscopy', state: 'Active', publication_date: '2022-01-05', species: 'Mus musculus' },
+    {
+      class: 'Class A (Rhodopsin)', protein: 'adrb2_human', type: 'X-ray diffraction', state: 'Inactive', publication_date: '2007-10-25', species: 'Homo sapiens',
+    },
+    {
+      class: 'Class A (Rhodopsin)', protein: 'adrb2_human', type: 'Electron microscopy', state: 'Active', publication_date: '2022-08-03', species: 'Homo sapiens',
+    },
+    {
+      class: 'Class B1 (Secretin)', protein: 'glp1r_mouse', type: 'Electron microscopy', state: 'Active', publication_date: '2022-01-05', species: 'Mus musculus',
+    },
   ]);
   assert.equal(s.total, 3);
   assert.equal(s.human, 2);
@@ -199,6 +205,8 @@ test('gpcrdbSummary counts GPCR structures by class, method, state and year', ()
   assert.deepEqual(s.states, { Inactive: 1, Active: 2 });
   assert.deepEqual(s.years, [2007, 2022]);
   assert.deepEqual(s.methods, { 'X-ray': [1, 0], 'Electron microscopy': [0, 2] });
+  assert.deepEqual(s.byClass, { 'Class A (Rhodopsin)': { Inactive: 1, Active: 1 }, 'Class B1 (Secretin)': { Active: 1 } });
+  assert.equal(s.receptors, 2);
 });
 
 test('drugTargetNetwork links each known drug to each known target once and counts degrees', () => {
