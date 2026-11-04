@@ -34,6 +34,16 @@ export const SOURCES = {
   oprea2018: 'https://doi.org/10.1038/nrd.2018.14',
   minikel2024: 'https://doi.org/10.1038/s41586-024-07316-0',
   nelson2015: 'https://doi.org/10.1038/ng.3314',
+  klaeger2017: 'https://doi.org/10.1126/science.aan4368',
+  k4dd: 'https://www.ebi.ac.uk/chembl/explore/document/CHEMBL3885741',
+  copeland2006: 'https://doi.org/10.1038/nrd2082',
+  black1983: 'https://doi.org/10.1098/rspb.1983.0093',
+  schild1949: 'https://doi.org/10.1111/j.1476-5381.1949.tb00548.x',
+  cheng1973: 'https://doi.org/10.1016/0006-2952(73)90196-2',
+  bliss1939: 'https://doi.org/10.1111/j.1744-7348.1939.tb06990.x',
+  holbeck2017: 'https://doi.org/10.1158/0008-5472.CAN-17-0489',
+  hopkins2004: 'https://doi.org/10.1016/S1359-6446(04)03069-7',
+  leeson2007: 'https://doi.org/10.1038/nrd2445',
 };
 
 export const SOURCE_TITLES = {
@@ -67,6 +77,16 @@ export const SOURCE_TITLES = {
   oprea2018: ['Pharmacology', 'Oprea et al. 2018, Unexplored therapeutic opportunities in the human genome, Nature Reviews Drug Discovery 17:317'],
   minikel2024: ['Trials and development', 'Minikel et al. 2024, Refining the impact of genetic evidence on clinical success, Nature 629:624'],
   nelson2015: ['Trials and development', 'Nelson et al. 2015, The support of human genetic evidence for approved drug indications, Nature Genetics 47:856'],
+  klaeger2017: ['Pharmacology', 'Klaeger et al. 2017, The target landscape of clinical kinase drugs, Science 358:eaan4368'],
+  k4dd: ['Pharmacology', 'K4DD, Kinetics for Drug Discovery consortium, binding kinetics deposited in ChEMBL'],
+  copeland2006: ['Pharmacology', 'Copeland, Pompliano and Meek 2006, Drug–target residence time and its implications for lead optimization, Nature Reviews Drug Discovery 5:730'],
+  black1983: ['Pharmacology', 'Black and Leff 1983, Operational models of pharmacological agonism, Proceedings of the Royal Society B 220:141'],
+  schild1949: ['Pharmacology', 'Schild 1949, pAx and competitive drug antagonism, British Journal of Pharmacology and Chemotherapy 4:277'],
+  cheng1973: ['Pharmacology', 'Cheng and Prusoff 1973, Relationship between the inhibition constant and the concentration of inhibitor which causes 50 per cent inhibition of an enzymatic reaction, Biochemical Pharmacology 22:3099'],
+  bliss1939: ['Pharmacology', 'Bliss 1939, The toxicity of poisons applied jointly, Annals of Applied Biology 26:585'],
+  holbeck2017: ['Pharmacology', 'Holbeck et al. 2017, The National Cancer Institute ALMANAC: a comprehensive screening resource for the detection of anticancer drug pairs with enhanced therapeutic activity, Cancer Research 77:3564'],
+  hopkins2004: ['Medicinal chemistry', 'Hopkins, Groom and Alex 2004, Ligand efficiency: a useful metric for lead selection, Drug Discovery Today 9:430'],
+  leeson2007: ['Medicinal chemistry', 'Leeson and Springthorpe 2007, The influence of drug-like concepts on decision-making in medicinal chemistry, Nature Reviews Drug Discovery 6:881'],
 };
 
 export const GENETIC_SUPPORT = {

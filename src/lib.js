@@ -129,6 +129,16 @@ export const duration = (hours) => {
   return `${years} ${years === 1 ? 'year' : 'years'}`;
 };
 
+export const seconds = (s) => {
+  const n = toNumber(s);
+  if (!Number.isFinite(n)) return '—';
+  if (n < 60) return `${short(n)} s`;
+  if (n < 3600) return `${short(n / 60)} min`;
+  return duration(n / 3600);
+};
+
+export const pow10 = (k) => `10${String(k).split('').map((c) => SUPERSCRIPT[c] ?? c).join('')}`;
+
 export const daltons = (v) => {
   const n = toNumber(v);
   if (!Number.isFinite(n)) return '—';

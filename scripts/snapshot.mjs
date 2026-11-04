@@ -183,7 +183,11 @@ const kinomeData = memo(async () => {
 
 const kinome = () => kinomeData();
 
-const agreement = async () => ({ document: DOCUMENTS.karaman, ...agreementPairs(await kinomeData(), await esDocument(DOCUMENTS.karaman)) });
+const agreement = async () => {
+  const davis = await kinomeData();
+  const against = async (doc) => ({ document: doc, ...agreementPairs(davis, await esDocument(doc)) });
+  return { karaman: await against(DOCUMENTS.karaman), klaeger: await against(DOCUMENTS.klaeger) };
+};
 
 const kinetics = async () => ({ document: DOCUMENTS.k4dd, pairs: kineticPairs(await esDocument(DOCUMENTS.k4dd)) });
 

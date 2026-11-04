@@ -13,7 +13,9 @@ export const DAVIS_FIELDS = [
   'molecule_chembl_id', 'molecule_pref_name', 'target_chembl_id', 'target_pref_name', 'target_organism', 'assay_chembl_id', 'assay_description', 'assay_variant_mutation', 'pchembl_value', 'standard_relation', 'standard_value', 'standard_type',
 ];
 
-export const DOCUMENTS = { davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', k4dd: 'CHEMBL3885741' };
+export const DOCUMENTS = {
+  davis: 'CHEMBL1908390', karaman: 'CHEMBL1150977', klaeger: 'CHEMBL3991601', k4dd: 'CHEMBL3885741',
+};
 
 export const DAVIS_DOCUMENT = DOCUMENTS.davis;
 
