@@ -90,7 +90,7 @@ test('bioFindings state the bioactivity part as numbers', () => {
   assert.equal(f.record, 'ChEMBL 37 holds 1,000 activity records; 40% come from the literature and 30% carry a pChEMBL value');
   assert.equal(f.potency, 'Measured potencies in ChEMBL centre on pChEMBL 6 to 6.5; approved drugs bind their primary targets at a median of 8.1');
   assert.equal(f.efficiency, 'Approved drugs have a median ligand efficiency of 0.42 kcal/mol per heavy atom at their primary targets; 33.3% fall below 0.3');
-  assert.equal(f.agreement, 'Kinobeads and KINOMEscan put 100% of 4 shared kinase Kd values within tenfold of each other; 2 pairs bound in one assay and not the other');
+  assert.equal(f.agreement, 'Kinobeads and KINOMEscan agree within tenfold on 100% of 4 shared kinase Kd values; 2 pairs bind in one assay but not the other');
   assert.equal(f.kinetics, 'In K4DD, residence times run from 1.7 min to 2.8 h across 3 compound–target pairs on 2 targets');
   assert.equal(f.combinations, 'In NCI-ALMANAC, thioguanine with chlorambucil beats the Bliss expectation most, by 12 points; 66.7% of 3 pairs score above zero');
 });
