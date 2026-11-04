@@ -8,7 +8,7 @@ import { FILES, USER_AGENT, CHEMBL } from '../src/queries.js';
 import { cacheName, downloadTo } from './streams.mjs';
 import { runSections, toModule } from './sections.mjs';
 import {
-  chemblStatus, approvedDrugs, atcNames, pages,
+  chemblStatus, approvedDrugs, atcNames, pages, ringSystemTable,
 } from './chembl.mjs';
 
 const OUT = new URL('../src/snapshot.js', import.meta.url);
@@ -36,9 +36,15 @@ const chembl = async () => ({
   atc: atcNames(await pages(chemblJson, relative(FILES.chemblAtc), 'atc')),
 });
 
-const drugs = async () => approvedDrugs(await pages(chemblJson, relative(FILES.chemblApproved), 'molecules'));
+let drugList;
+const drugs = async () => {
+  drugList ??= approvedDrugs(await pages(chemblJson, relative(FILES.chemblApproved), 'molecules'));
+  return drugList;
+};
 
-const SECTIONS = { chembl, drugs };
+const chemistry = async () => ({ systems: ringSystemTable(await drugs(), 40) });
+
+const SECTIONS = { chembl, drugs, chemistry };
 
 const now = new Date();
 const only = process.argv.slice(2).filter((a) => SECTIONS[a]);
