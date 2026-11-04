@@ -1,3 +1,5 @@
+import { components } from '../src/lib.js';
+
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 
 export const forceLayout = (n, edges, { iterations = 300, gravity = 0.04 } = {}) => {
@@ -78,32 +80,7 @@ export const forceLayout = (n, edges, { iterations = 300, gravity = 0.04 } = {})
   return Array.from({ length: n }, (_, i) => [Number(((x[i] - minX + offX) / span).toFixed(4)), Number(((y[i] - minY + offY) / span).toFixed(4))]);
 };
 
-export const components = (n, edges) => {
-  const parent = Array.from({ length: n }, (_, i) => i);
-  const find = (i) => {
-    let r = i;
-    while (parent[r] !== r) r = parent[r];
-    let at = i;
-    while (parent[at] !== r) {
-      const next = parent[at];
-      parent[at] = r;
-      at = next;
-    }
-    return r;
-  };
-  for (const [a, b] of edges) {
-    const ra = find(a);
-    const rb = find(b);
-    if (ra !== rb) parent[Math.max(ra, rb)] = Math.min(ra, rb);
-  }
-  const groups = new Map();
-  for (let i = 0; i < n; i += 1) {
-    const r = find(i);
-    if (!groups.has(r)) groups.set(r, []);
-    groups.get(r).push(i);
-  }
-  return [...groups.values()].sort((a, b) => b.length - a.length || a[0] - b[0]);
-};
+export { components };
 
 const blockOf = (nodes, edges, iterations) => {
   const side = Math.sqrt(nodes.length);

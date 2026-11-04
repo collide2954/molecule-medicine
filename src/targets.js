@@ -1,4 +1,6 @@
-import { exact, pct, runs } from './lib.js';
+import {
+  exact, pct, runs, components,
+} from './lib.js';
 import { summary, quantile } from './stats.js';
 
 const lower = (s) => String(s ?? '').toLowerCase();
@@ -155,6 +157,21 @@ export const networkGraph = (snap) => {
       })),
     edges: N.edges,
   };
+};
+
+export const networkPieces = (snap) => {
+  const g = networkGraph(snap);
+  return components(g.nodes.length, g.edges).map((members) => {
+    const nodes = members.map((i) => g.nodes[i]);
+    const targets = nodes.filter((n) => n.kind === 'target');
+    const counts = new Map();
+    for (const t of targets) counts.set(t.group, (counts.get(t.group) ?? 0) + 1);
+    return {
+      drugs: nodes.length - targets.length,
+      targets: targets.length,
+      families: [...counts].map(([family, n]) => ({ family, n })).sort((a, b) => b.n - a.n || a.family.localeCompare(b.family)),
+    };
+  });
 };
 
 export const GTOPDB_TYPES = [
