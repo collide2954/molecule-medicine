@@ -77,6 +77,54 @@ export const ringSystemTable = (drugs, top) => {
   return [...table.values()].sort((a, b) => b.n - a.n || a.key.localeCompare(b.key)).slice(0, top);
 };
 
+export const mechanismRecords = (rows) => rows.filter((m) => m.target_chembl_id).map((m) => ({
+  drug: m.parent_molecule_chembl_id ?? m.molecule_chembl_id, target: m.target_chembl_id, action: m.action_type, moa: m.mechanism_of_action, direct: m.direct_interaction ?? 0,
+}));
+
+const unique = (list) => [...new Set(list.filter((v) => v !== null && v !== undefined && v !== ''))];
+const synonyms = (c, type) => (c.target_component_synonyms ?? []).filter((s) => s.syn_type === type).map((s) => s.component_synonym);
+
+export const targetRecord = (t, classes = new Map()) => {
+  const comps = t.target_components ?? [];
+  return {
+    id: t.target_chembl_id,
+    name: t.pref_name,
+    type: t.target_type,
+    organism: t.organism,
+    genes: unique(comps.flatMap((c) => synonyms(c, 'GENE_SYMBOL'))),
+    accessions: unique(comps.map((c) => c.accession)),
+    ec: unique(comps.flatMap((c) => synonyms(c, 'EC_NUMBER'))),
+    classes: unique(comps.flatMap((c) => classes.get(c.component_id) ?? [])),
+  };
+};
+
+export const classTree = (rows) => new Map(rows.map((r) => [r.protein_class_id, { name: r.pref_name, parent: r.parent_id, level: r.class_level }]));
+
+export const classPath = (tree, id) => {
+  const out = [];
+  for (let node = tree.get(id); node && node.level > 0; node = tree.get(node.parent)) out.unshift(node.name);
+  return out;
+};
+
+export const targetFamily = (path, type) => {
+  if (!path.length) {
+    if (/NUCLEIC/i.test(type ?? '')) return 'Nucleic acid';
+    if (/ORGANISM|CELL|TISSUE/i.test(type ?? '')) return 'Organism or cell';
+    return 'Unclassified';
+  }
+  const [l1, l2] = path;
+  if (path.some((p) => /G protein-coupled receptor/i.test(p))) return 'GPCR';
+  if (l1 === 'Ion channel') return 'Ion channel';
+  if (l1 === 'Enzyme' && l2 === 'Kinase') return 'Kinase';
+  if (path.some((p) => /Nuclear receptor/i.test(p))) return 'Nuclear receptor';
+  if (l1 === 'Enzyme' && l2 === 'Protease') return 'Protease';
+  if (l1 === 'Enzyme') return 'Other enzyme';
+  if (l1 === 'Transporter') return 'Transporter';
+  if (l1 === 'Membrane receptor') return 'Other receptor';
+  if (l1 === 'Epigenetic regulator') return 'Epigenetic regulator';
+  return 'Other protein';
+};
+
 export const atcNames = (rows) => {
   const out = {};
   for (const r of rows) {
