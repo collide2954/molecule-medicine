@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import snapshot from '../../src/snapshot.js';
 import {
-  findings, smallMolecules, decadeOf, propertyByDecade, elementShares, elementByDecade, ringCounts, chiralityByDecade, stemCounts, flagCounts, atcGroups, typeGroups,
+  findings, smallMolecules, decadeOf, propertyByDecade, elementShares, elementByDecade, ringCounts, chiralityByDecade, stemCounts, flagCounts, atcGroups, typeGroups, systemName,
 } from '../../src/findings.js';
 
 const drug = (id, over = {}) => ({
@@ -63,6 +63,23 @@ test('stemCounts splits combined stems and counts each once per drug', () => {
 test('flagCounts and atcGroups count drugs by flag and by anatomical main group', () => {
   assert.deepEqual(flagCounts(fixture), [{ flag: 'boxed warning', n: 2 }, { flag: 'orphan', n: 1 }, { flag: 'withdrawn', n: 1 }]);
   assert.deepEqual(atcGroups(fixture), [{ code: 'L', name: 'ANTINEOPLASTIC AND IMMUNOMODULATING AGENTS', n: 3 }, { code: 'N', name: 'NERVOUS SYSTEM', n: 2 }]);
+});
+
+test('systemName names common fused ring systems from their rings, in any order', () => {
+  assert.equal(systemName(['benzene']), 'benzene');
+  assert.equal(systemName(['pyrrole', 'benzene']), 'indole');
+  assert.equal(systemName(['benzene', 'pyrrole']), 'indole');
+  assert.equal(systemName(['imidazole', 'pyrimidine']), 'purine');
+  assert.equal(systemName(['benzene', 'benzene']), 'naphthalene');
+  assert.equal(systemName(['cyclopentane', 'cyclohexane', 'cyclohexane', '6-ring, carbocyclic, partly unsaturated']), 'steroid nucleus');
+  assert.equal(systemName(['cyclopentane', 'cyclohexane', 'cyclohexane', 'cyclohexane']), 'steroid nucleus');
+  assert.equal(systemName(['β-lactam', 'dihydrothiazine']), 'cephem');
+  assert.equal(systemName(['β-lactam', 'thiazolidine']), 'penam');
+  assert.equal(systemName(['benzene', '1,4-diazepine']), '1,4-benzodiazepine');
+  assert.equal(systemName(['imidazole', 'benzene']), 'benzimidazole');
+  assert.equal(systemName(['pyridine', 'benzene']), 'quinoline or isoquinoline');
+  assert.equal(systemName(['benzene', 'benzene', '6-ring, S1N1, partly unsaturated']), 'phenothiazine');
+  assert.equal(systemName(['piperidine', 'pyrrolidine']), 'piperidine + pyrrolidine');
 });
 
 test('findings state the molecules part as numbers', () => {
