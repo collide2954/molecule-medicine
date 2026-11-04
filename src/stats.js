@@ -264,7 +264,7 @@ export const hexbin = (points, radius) => {
   const dx = radius * 2 * Math.sin(Math.PI / 3);
   const dy = radius * 1.5;
   const bins = new Map();
-  for (const [x, y] of points) {
+  for (const [index, [x, y]] of points.entries()) {
     const py = y / dy;
     let pj = Math.round(py);
     const px = x / dx - (pj & 1) / 2;
@@ -282,8 +282,10 @@ export const hexbin = (points, radius) => {
       }
     }
     const key = `${pi},${pj}`;
-    if (!bins.has(key)) bins.set(key, { i: pi, j: pj, x: tidy((pi + (pj & 1) / 2) * dx), y: tidy(pj * dy), n: 0 });
-    bins.get(key).n += 1;
+    if (!bins.has(key)) bins.set(key, { i: pi, j: pj, x: tidy((pi + (pj & 1) / 2) * dx), y: tidy(pj * dy), n: 0, members: [] });
+    const bin = bins.get(key);
+    bin.n += 1;
+    bin.members.push(index);
   }
   return [...bins.values()];
 };
