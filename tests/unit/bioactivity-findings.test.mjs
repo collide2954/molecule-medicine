@@ -68,6 +68,8 @@ test('drugBase drops salt names and lowercases drug names', () => {
   assert.equal(drugBase('Gemcitabine hydrochloride'), 'gemcitabine');
   assert.equal(drugBase('Vinorelbine tartrate'), 'vinorelbine');
   assert.equal(drugBase('Arsenic trioxide'), 'arsenic trioxide');
+  assert.equal(drugBase('Lapatinib ditosylate'), 'lapatinib');
+  assert.equal(drugBase('Sunitinib malate'), 'sunitinib');
 });
 
 test('comboMatrix lays pair scores out as a symmetric matrix with a cluster order, and topPairs ranks them', () => {
