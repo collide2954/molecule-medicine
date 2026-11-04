@@ -158,6 +158,229 @@ export const longDate = (text) => {
   return d ? `${Number(d)} ${month} ${y}` : `${month} ${y}`;
 };
 
+const fold = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+export const matches = (text, query) => {
+  const terms = fold(query).split(/\s+/).filter(Boolean);
+  const hay = fold(text);
+  return terms.every((t) => hay.includes(t));
+};
+
+export const filterTimeline = (items, { tags, orgs, query } = {}) =>
+  items.filter((i) =>
+    (!tags?.length || tags.includes(i.tag)) &&
+    (!orgs?.length || orgs.includes(i.org)) &&
+    matches(`${i.date} ${i.org} ${i.tag} ${i.text}`, query));
+
+export const sortRows = (rows, key, dir = 'asc') => {
+  const sign = dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const x = a[key];
+    const y = b[key];
+    if (x === null || x === undefined) return y === null || y === undefined ? 0 : 1;
+    if (y === null || y === undefined) return -1;
+    if (typeof x === 'number' && typeof y === 'number') return (x - y) * sign;
+    return String(x).localeCompare(String(y)) * sign;
+  });
+};
+
+export const niceTicks = (max, count) => {
+  if (!max || max <= 0) return [0];
+  const raw = max / count;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const r = raw / mag;
+  const step = (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * mag;
+  const top = Math.ceil(Number((max / step).toFixed(6))) * step;
+  return Array.from({ length: Math.round(top / step) + 1 }, (_, i) => Number((i * step).toPrecision(12)));
+};
+
+export const spanTicks = (lo, hi, count = 4) => {
+  const step = niceTicks(hi - lo, count)[1] || 1;
+  let t = Math.floor(lo / step) * step;
+  const out = [Number(t.toPrecision(12))];
+  while (t < hi || out.length < 2) {
+    t += step;
+    out.push(Number(t.toPrecision(12)));
+  }
+  return out;
+};
+
+export const LENSES = [
+  { id: 'all', label: 'Everything', hint: 'Every section, from the bench to the bedside' },
+  { id: 'basic', label: 'Basic', hint: 'Molecules, targets, bioactivity, ADME and structural pharmacology' },
+  { id: 'clinical', label: 'Clinical', hint: 'Pharmacokinetics, trials, manufacturing, approvals, labels, use and spending' },
+  { id: 'safety', label: 'Safety', hint: 'Adverse events, signals, toxicology, overdose, recalls and withdrawals' },
+  { id: 'genomics', label: 'Genomics', hint: 'CPIC, star alleles, frequencies, pharmacogenomic labels and HLA' },
+];
+
+const LENS_IDS = new Set(LENSES.map((l) => l.id));
+
+export const readLens = (search) => {
+  const value = new URLSearchParams(search).get('lens');
+  return LENS_IDS.has(value) ? value : 'all';
+};
+
+export const inLens = (tags, lens) => {
+  if (lens === 'all') return true;
+  const list = String(tags ?? '').split(/\s+/).filter(Boolean);
+  return list.length === 0 || list.includes(lens);
+};
+
+export const lensSearch = (search, lens) => {
+  const params = new URLSearchParams(search);
+  if (lens === 'all') params.delete('lens');
+  else params.set('lens', lens);
+  const out = params.toString();
+  return out ? `?${out}` : '';
+};
+
+const STEPS = [1, 2, 5, 10, 20, 25, 50, 100];
+
+export const labelStep = (count, width, gap = 32) =>
+  STEPS.find((step) => Math.ceil(count / step) * gap <= width) ?? STEPS.at(-1);
+
+export const waffle = (parts, cells = 100) => {
+  const total = parts.reduce((sum, p) => sum + p.value, 0);
+  const raw = parts.map((p) => (p.value / total) * cells);
+  const counts = raw.map(Math.floor);
+  const order = raw.map((r, i) => ({ i, rest: r - Math.floor(r) })).sort((a, b) => b.rest - a.rest || a.i - b.i);
+  const missing = cells - counts.reduce((a, b) => a + b, 0);
+  for (let k = 0; k < missing; k += 1) counts[order[k].i] += 1;
+  return parts.flatMap((p, i) => Array(counts[i]).fill(p.key));
+};
+
+export const scaleLinear = ([d0, d1], [r0, r1]) => (v) => r0 + ((v - d0) / (d1 - d0)) * (r1 - r0);
+
+export const scaleLog = ([d0, d1], [r0, r1]) => {
+  const l0 = Math.log10(d0);
+  const l1 = Math.log10(d1);
+  return (v) => r0 + ((Math.log10(v) - l0) / (l1 - l0)) * (r1 - r0);
+};
+
+export const logTicks = (min, max) => {
+  const out = [];
+  for (let k = Math.ceil(Math.log10(min) - 1e-9); k <= Math.floor(Math.log10(max) + 1e-9); k += 1) out.push(Number((10 ** k).toPrecision(12)));
+  return out;
+};
+
+export const stack = (rows, keys) => {
+  const base = rows.map(() => 0);
+  return keys.map((key) => ({
+    key,
+    points: rows.map((r, i) => {
+      const point = [base[i], base[i] + r[key]];
+      base[i] += r[key];
+      return point;
+    }),
+  }));
+};
+
+const clampSpan = ([a, b], [lo, hi]) => {
+  const span = b - a;
+  if (a < lo) return [lo, lo + span];
+  if (b > hi) return [hi - span, hi];
+  return [a, b];
+};
+
+export const zoomDomain = ([a, b], center, factor, [lo, hi], minSpan = 1) => {
+  const span = Math.min(Math.max((b - a) * factor, minSpan), hi - lo);
+  const ratio = (center - a) / (b - a);
+  const start = center - ratio * span;
+  return clampSpan([start, start + span], [lo, hi]);
+};
+
+export const panDomain = ([a, b], delta, limits) => clampSpan([a + delta, b + delta], limits);
+
+export const easeOut = (t) => 1 - (1 - t) ** 3;
+
+export const spread = (positions, gap, lo, hi) => {
+  const order = positions.map((p, i) => ({ p, i })).sort((a, b) => a.p - b.p);
+  let blocks = order.map((o) => ({ items: [o], top: o.p }));
+  const fit = (b) => Math.min(Math.max(b.top, lo), hi - (b.items.length - 1) * gap);
+  let merged = true;
+  while (merged) {
+    merged = false;
+    const next = [];
+    for (const b of blocks) {
+      const prev = next.at(-1);
+      if (prev && fit(prev) + prev.items.length * gap > fit(b)) {
+        const items = [...prev.items, ...b.items];
+        const mean = items.reduce((n, o) => n + o.p, 0) / items.length;
+        next[next.length - 1] = { items, top: mean - ((items.length - 1) * gap) / 2 };
+        merged = true;
+      } else next.push(b);
+    }
+    blocks = next;
+  }
+  const out = [];
+  for (const b of blocks) b.items.forEach((o, k) => { out[o.i] = fit(b) + k * gap; });
+  return out;
+};
+
+export const squarify = (items, width, height) => {
+  const total = items.reduce((sum, i) => sum + i.value, 0);
+  const scale = (width * height) / total;
+  const queue = [...items].filter((i) => i.value > 0).sort((a, b) => b.value - a.value)
+    .map((item) => ({ item, area: item.value * scale }));
+  const out = [];
+  const box = { x: 0, y: 0, w: width, h: height };
+  const worst = (row, side) => {
+    const sum = row.reduce((a, r) => a + r.area, 0);
+    const max = Math.max(...row.map((r) => r.area));
+    const min = Math.min(...row.map((r) => r.area));
+    return Math.max((side * side * max) / (sum * sum), (sum * sum) / (side * side * min));
+  };
+  const place = (row) => {
+    const sum = row.reduce((a, r) => a + r.area, 0);
+    if (box.w >= box.h) {
+      const cw = sum / box.h;
+      let cy = box.y;
+      for (const r of row) {
+        const ch = r.area / cw;
+        out.push({ ...r.item, x: box.x, y: cy, w: cw, h: ch });
+        cy += ch;
+      }
+      box.x += cw;
+      box.w -= cw;
+    } else {
+      const rh = sum / box.w;
+      let cx = box.x;
+      for (const r of row) {
+        const cw = r.area / rh;
+        out.push({ ...r.item, x: cx, y: box.y, w: cw, h: rh });
+        cx += cw;
+      }
+      box.y += rh;
+      box.h -= rh;
+    }
+  };
+  let row = [];
+  while (queue.length) {
+    const side = Math.min(box.w, box.h);
+    if (!row.length || worst([...row, queue[0]], side) <= worst(row, side)) {
+      row.push(queue.shift());
+    } else {
+      place(row);
+      row = [];
+    }
+  }
+  if (row.length) place(row);
+  return out;
+};
+
+export const heat = (v, lo, hi) => {
+  if (hi === lo) return 1;
+  const t = Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
+  return Number((0.06 + 0.94 * t).toFixed(3));
+};
+
+const px = (v) => Number(v.toFixed(1));
+
+export const stepPath = (steps, x, y, end) => {
+  const [first, ...rest] = steps;
+  return `M${px(x(first.t))},${px(y(first.s))}${rest.map((s) => `H${px(x(s.t))}V${px(y(s.s))}`).join('')}H${px(x(end))}`;
+};
+
 const ACRONYMS = ['ACE', 'HIV', 'DNA', 'RNA', 'GABA', 'TNF', 'MAO', 'COX', 'HMG', 'CoA', 'SGLT2', 'DPP-4', 'GLP-1', 'H1', 'H2', 'BCR-ABL', 'EGFR', 'HER2', 'VEGF', 'PDE', 'CTLA-4', 'PD-1', 'PD-L1', 'ALK', 'BRAF', 'MEK', 'JAK', 'BTK', 'CDK', 'PARP', 'mTOR', 'CGRP', 'NMDA', 'PCSK9', 'RANKL', 'CFTR', 'IgE', 'IgG', 'HCV', 'HBV', 'RSV', 'B12', 'D3', 'K', 'BCG', 'ADP', 'FLT3', 'KRAS', 'IDH', 'BCL-2', 'CD20', 'CD38', 'IL'];
 
 export const soften = (name) => {
