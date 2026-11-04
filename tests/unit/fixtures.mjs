@@ -74,6 +74,17 @@ export const xlsxOf = (sheets) => {
   return zipOf(files);
 };
 
+const num = (v, w) => v.toFixed(4).padStart(w, ' ');
+const int = (v, w) => String(v).padStart(w, ' ');
+
+export const molOf = (atoms, bonds, props = []) => {
+  const atomLines = atoms.map(([el, x = 0, y = 0, charge = 0]) => `${num(x, 10)}${num(y, 10)}${num(0, 10)} ${el.padEnd(3, ' ')} 0${int(charge, 3)}  0  0  0  0  0  0  0  0  0  0`);
+  const bondLines = bonds.map(([a, b, order = 1, stereo = 0]) => `${int(a, 3)}${int(b, 3)}${int(order, 3)}${int(stereo, 3)}`);
+  return ['test', '     RDKit          2D', '', `${int(atoms.length, 3)}${int(bonds.length, 3)}  0  0  0  0  0  0  0  0999 V2000`, ...atomLines, ...bondLines, ...props, 'M  END'].join('\n');
+};
+
+export const cycle = (n, start = 1, orders = []) => Array.from({ length: n }, (_, i) => [start + i, start + ((i + 1) % n), orders[i] ?? 1]);
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
