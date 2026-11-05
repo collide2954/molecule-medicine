@@ -58,6 +58,7 @@
       <li><b>Two meanings of approved.</b> Chemistry and targets count the drugs ChEMBL lists at maximum phase 4, approved somewhere, one entry per parent compound with its salts folded in. Regulatory history counts FDA novel approvals. Each caption says which.</li>
       <li><b>First approval dates.</b> ChEMBL dates a drug by the earliest approval it records, so medicines older than modern registration, such as aspirin and morphine, carry later years than their first use.</li>
       <li><b>Drugs, targets and pairs.</b> A drug that acts on three targets makes three drug–target pairs. The targets part counts drugs, targets or pairs, and each caption says which.</li>
+      <li><b>Trials are registry records.</b> A trial counts once however many countries it runs in, planned trials count alongside finished ones, and phases are as the sponsor registered them.</li>
       <li><b>Potency and concentration.</b> Affinities are plotted as pKi, pIC50 or pEC50, minus the log of the molar value, with nanomolar in the popups; plasma levels are in ng/mL.</li>
       <li><b>Log scales.</b> Charts that span several orders of magnitude say log scale in their caption.</li>
       <li><b>Every figure’s numbers.</b> Each caption ends with a table and a CSV of exactly what is drawn.</li>
@@ -606,7 +607,7 @@
     <header class="head"><p class="label">Reporting results</p><h2 data-finding="reporting">Reporting results</h2><p class="dek" id="reporting-dek"></p></header>
     <figure class="fig">
       <div class="chart" id="reporting-chart"></div>
-      <figcaption>Share of trials that had submitted results to ClinicalTrials.gov by each month after primary completion, Kaplan–Meier, for interventional phase 2, 3 and 4 trials of an FDA-regulated drug or biologic whose actual primary completion fell in 2018 to 2021. FDAAA and 42 CFR Part 11 give such trials a year; a certification or an extension request can delay that, and trials that filed one form their own curve. Source: ClinicalTrials.gov API.</figcaption>
+      <figcaption>Share of trials that had submitted results to ClinicalTrials.gov by each month after primary completion, Kaplan–Meier, for interventional phase 2, 3 and 4 trials of an FDA-regulated drug or biologic whose actual primary completion fell in 2018 to 2021. FDAAA and 42 CFR Part 11 give such trials a year; a certification or an extension request can delay that, and trials that filed one form their own curve. Most trials registered before the rule took effect on 18 January 2017 never set the FDA-regulated flag and are not counted. Source: ClinicalTrials.gov API.</figcaption>
     </figure>
   </section>
 
