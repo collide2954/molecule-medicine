@@ -1,8 +1,12 @@
 import { PHASE_GROUPS } from '../src/queries.js';
 
+const fieldCounts = (f) => (f.type === 'BOOLEAN'
+  ? [{ value: 'true', n: f.trueCount ?? 0 }, { value: 'false', n: f.falseCount ?? 0 }]
+  : (f.topValues ?? []).map((v) => ({ value: v.value, n: v.studiesCount })));
+
 export const ctFieldValues = (json) => Object.fromEntries(json.map((f) => [f.piece, {
   missing: f.missingStudiesCount ?? 0,
-  values: (f.topValues ?? []).map((v) => ({ value: v.value, n: v.studiesCount })).sort((a, b) => b.n - a.n),
+  values: fieldCounts(f).sort((a, b) => b.n - a.n),
 }]));
 
 export const ctStudies = (json) => (json.studies ?? []).map((x) => {
@@ -48,16 +52,22 @@ export const sponsorGroup = (cls) => {
 
 const tally = (values) => [...values.reduce((m, v) => m.set(v, (m.get(v) ?? 0) + 1), new Map())].sort((a, b) => a[0] - b[0]);
 
-export const reportingGroups = (times) => ['industry', 'federal', 'other'].map((key) => {
-  const rows = times.filter((t) => sponsorGroup(t.sponsor) === key);
-  return {
-    key,
-    n: rows.length,
-    certified: rows.filter((t) => t.certified).length,
-    events: tally(rows.filter((t) => t.event).map((t) => t.months)),
-    censored: tally(rows.filter((t) => !t.event).map((t) => t.months)),
-  };
+const SPONSOR_KEYS = ['industry', 'federal', 'other'];
+
+const reportingGroup = (key, rows) => ({
+  key,
+  n: rows.length,
+  events: tally(rows.filter((t) => t.event).map((t) => t.months)),
+  censored: tally(rows.filter((t) => !t.event).map((t) => t.months)),
 });
+
+export const reportingGroups = (times) => {
+  const certified = times.filter((t) => t.certified);
+  return [
+    ...SPONSOR_KEYS.map((key) => reportingGroup(key, times.filter((t) => !t.certified && sponsorGroup(t.sponsor) === key))),
+    { ...reportingGroup('certified', certified), sponsors: Object.fromEntries(SPONSOR_KEYS.map((key) => [key, certified.filter((t) => sponsorGroup(t.sponsor) === key).length])) },
+  ];
+};
 
 export const startYears = (rows) => {
   const out = {};
@@ -89,11 +99,12 @@ const DRUG_TYPES = new Set(['DRUG', 'BIOLOGICAL', 'COMBINATION_PRODUCT', 'DIETAR
 export const matchesCompound = (row, spec) => {
   const hit = new RegExp(spec.pattern, 'i');
   const miss = spec.not ? new RegExp(spec.not, 'i') : null;
-  const named = row.interventions.some((i) => DRUG_TYPES.has(i.type) && i.names.some((n) => hit.test(n) && !miss?.test(n)));
-  if (!named || !spec.condition) return named;
-  const want = new RegExp(spec.condition, 'i');
-  const skip = spec.notCondition ? new RegExp(spec.notCondition, 'i') : null;
-  return row.conditions.some((c) => want.test(c) && !skip?.test(c));
+  if (!row.interventions.some((i) => DRUG_TYPES.has(i.type) && i.names.some((n) => hit.test(n) && !miss?.test(n)))) return false;
+  const unless = spec.unless ? new RegExp(spec.unless, 'i') : null;
+  if (unless && row.conditions.some((c) => unless.test(c))) return false;
+  if (!spec.when) return true;
+  const want = new RegExp(spec.when, 'i');
+  return row.conditions.some((c) => want.test(c));
 };
 
 export const compoundTrials = (rows, spec) => {

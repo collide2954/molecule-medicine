@@ -132,7 +132,7 @@ export const PSYCHOACTIVE = [
     key: 'lsd', label: 'LSD', group: 'psychedelics', search: 'lysergic acid diethylamide OR lysergide OR LSD OR MM120', pattern: 'lysergic acid diethylamide|lysergide|\\bLSD\\b|\\b(?:MM|DT)-?120\\b',
   },
   {
-    key: 'dmt', label: 'DMT and ayahuasca', group: 'psychedelics', search: 'dimethyltryptamine OR DMT OR ayahuasca OR SPL026', pattern: 'dimethyltryptamine|\\bDMT\\b|ayahuasca|\\bSPL-?026\\b', not: 'meo|methoxy|hydroxy|phosphoryl',
+    key: 'dmt', label: 'DMT and ayahuasca', group: 'psychedelics', search: 'dimethyltryptamine OR DMT OR ayahuasca OR SPL026', pattern: 'dimethyltryptamine|\\bDMT\\b|ayahuasca|\\bSPL-?026\\b', not: 'meo|methoxy|hydroxy|phosphoryl', unless: '\\bMS\\b|RRMS|sclerosis|neuromyelitis|demyelinat',
   },
   {
     key: 'meodmt', label: '5-MeO-DMT', group: 'psychedelics', search: '5-MeO-DMT OR mebufotenin OR GH001 OR BPL-003', pattern: '5[- ]?meo|methoxy[- ]?n, ?n[- ]?dimethyltryptamine|mebufotenin|\\bGH00[12]\\b|\\bBPL-?003\\b',
@@ -141,10 +141,10 @@ export const PSYCHOACTIVE = [
     key: 'ibogaine', label: 'ibogaine', group: 'psychedelics', search: 'ibogaine OR noribogaine', pattern: 'ibogaine',
   },
   {
-    key: 'ketamine', label: 'ketamine for depression', group: 'psychedelics', search: 'ketamine OR esketamine', cond: 'depression OR depressive', pattern: 'ketamine', condition: 'depress', notCondition: 'respiratory depression',
+    key: 'ketamine', label: 'ketamine for depression', group: 'psychedelics', search: 'ketamine OR esketamine', cond: 'depression OR depressive', pattern: 'ketamine', when: 'depress', unless: 'respiratory depression',
   },
   {
-    key: 'cbd', label: 'cannabidiol', group: 'cannabinoids', search: 'cannabidiol OR CBD OR Epidiolex', pattern: 'cannabidiol|\\bCBD\\b|epidiolex',
+    key: 'cbd', label: 'cannabidiol', group: 'cannabinoids', search: 'cannabidiol OR CBD OR Epidiolex', pattern: 'cannabidiol|\\bCBD\\b|epidiolex', not: 'clonidine',
   },
   {
     key: 'thc', label: 'THC, dronabinol, nabilone', group: 'cannabinoids', search: 'dronabinol OR nabilone OR tetrahydrocannabinol OR THC OR nabiximols OR Sativex', pattern: 'dronabinol|nabilone|tetrahydrocannabinol|\\bTHC\\b|nabiximols|sativex|marinol|syndros|cesamet',
