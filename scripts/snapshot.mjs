@@ -7,7 +7,11 @@ import { gunzipSync } from 'node:zlib';
 import { retry } from '../src/lib.js';
 import {
   FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
+  DRUG_TRIALS, PHASE_GROUPS, TRIAL_FEATURES, ENROLLMENT_BINS, REPORTING, PSYCHOACTIVE, PSYCHOACTIVE_FIELDS, ctCount, ctPage, postedIn, postedBefore, enrolled,
 } from '../src/queries.js';
+import {
+  ctFieldValues, ctStudies, reportingTimes, reportingGroups, compoundTrials,
+} from './trials.mjs';
 import {
   cacheName, downloadTo, unzip, bufferLines,
 } from './streams.mjs';
@@ -30,6 +34,7 @@ import { drugTargetNetwork } from './network.mjs';
 import { clinvarGenes, hgncCoding, geneSupport } from './genetics.mjs';
 
 const OUT = new URL('../src/snapshot.js', import.meta.url);
+const now = new Date();
 const HEADERS = { 'user-agent': USER_AGENT, accept: 'application/json' };
 const CACHE = process.env.SNAPSHOT_CACHE ?? await mkdtemp(join(tmpdir(), 'basic-clinical-pharm-'));
 await mkdir(CACHE, { recursive: true });
@@ -238,11 +243,72 @@ const ddi = async () => ({ rows: ddiRows(await text(FILES.fdaInteractions)) });
 
 const cipa = async () => ({ commit: '539ff80d6616895de5d943e7bfb77b346d195db4', rows: cipaRows(await text(FILES.cipaIc50), await text(FILES.cipaDrugs)) });
 
-const SECTIONS = {
-  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa,
+const ctTotal = async (expr) => {
+  const n = (await json(ctCount(expr))).totalCount;
+  if (!Number.isInteger(n)) throw new Error(`no count for ${expr}`);
+  return n;
 };
 
-const now = new Date();
+const ctAll = async (params) => {
+  const rows = [];
+  let token = null;
+  do {
+    const page = await json(ctPage(params, token));
+    rows.push(...ctStudies(page));
+    token = page.nextPageToken ?? null;
+  } while (token);
+  return rows;
+};
+
+const trials = async () => {
+  const last = now.getUTCFullYear() - 1;
+  const years = Array.from({ length: last - 1999 }, (_, i) => 2000 + i);
+  const within = (g, extra) => `${DRUG_TRIALS} AND (${g.expr})${extra ? ` AND (${extra})` : ''}`;
+  const registered = [];
+  const design = [];
+  const enrollment = [];
+  for (const g of PHASE_GROUPS) {
+    const counts = [];
+    for (const y of years) counts.push(await ctTotal(within(g, postedIn(y))));
+    registered.push({ key: g.key, before: await ctTotal(within(g, postedBefore(2000))), years: counts });
+    const features = [];
+    for (const f of TRIAL_FEATURES) features.push(await ctTotal(within(g, f.of ? `${f.of} AND ${f.expr}` : f.expr)));
+    design.push({
+      key: g.key, total: await ctTotal(within(g)), completed: await ctTotal(within(g, 'AREA[OverallStatus]COMPLETED')), features,
+    });
+    const bins = [];
+    for (const b of ENROLLMENT_BINS) bins.push(await ctTotal(within(g, enrolled(b))));
+    enrollment.push({ key: g.key, bins });
+  }
+  const size = await json(FILES.ctSize);
+  return {
+    total: size.totalStudies, drug: await ctTotal(DRUG_TRIALS), fields: ctFieldValues(await json(FILES.ctFields)), years, registered, design, enrollment,
+  };
+};
+
+const reporting = async () => {
+  const rows = await ctAll({ 'filter.advanced': REPORTING.expr, fields: REPORTING.fields.join(',') });
+  const asOf = now.toISOString().slice(0, 10);
+  return {
+    from: REPORTING.from, to: REPORTING.to, asOf, n: rows.length, groups: reportingGroups(reportingTimes(rows, asOf)),
+  };
+};
+
+const psychoactive = async () => {
+  const compounds = [];
+  for (const spec of PSYCHOACTIVE) {
+    const rows = await ctAll({
+      'query.intr': spec.search, ...(spec.cond ? { 'query.cond': spec.cond } : {}), 'filter.advanced': 'AREA[StudyType]INTERVENTIONAL', fields: PSYCHOACTIVE_FIELDS.join(','),
+    });
+    compounds.push(compoundTrials(rows, spec));
+  }
+  return { compounds };
+};
+
+const SECTIONS = {
+  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa, trials, reporting, psychoactive,
+};
+
 const only = process.argv.slice(2).filter((a) => SECTIONS[a]);
 const previous = existsSync(OUT) ? (await import(`${OUT.href}?t=${now.getTime()}`)).default : {};
 const snapshot = await runSections(SECTIONS, { now, previous, only });
