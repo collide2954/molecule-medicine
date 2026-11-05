@@ -572,8 +572,76 @@
     </figure>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-trials" data-chapter="trials">
     <p class="chapter-no">Part 5</p>
+    <h2 class="chapter-title">Trials</h2>
+    <p class="chapter-dek">How drugs are tested in people: the trials registered on ClinicalTrials.gov, how each phase is designed and how many it enrols, how promptly results are reported, how many programs reach approval and what they cost, and psychedelics and cannabinoids back in the clinic.</p>
+  </div>
+
+  <section class="story wrap" id="registry" data-lens="clinical" data-nav="Registry">
+    <header class="head"><p class="label">The trial registry</p><h2 data-finding="registry">The trial registry</h2><p class="dek" id="registry-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="registry-chart"></div>
+      <figcaption>Interventional trials of drugs or biologics by the year they were first posted on ClinicalTrials.gov, by phase, with phase 1/2 trials counted with phase 2 and phase 2/3 with phase 3. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <div class="chart" id="status-chart"></div>
+      <figcaption>Every study on ClinicalTrials.gov, interventional, observational and expanded access, by overall status, log scale. Unknown marks a study whose last known status was ongoing, past its completion date and not verified for two years. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="design" data-lens="clinical" data-nav="Trial design">
+    <header class="head"><p class="label">Design by phase</p><h2 data-finding="design">Design by phase</h2><p class="dek" id="design-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="design-chart"></div>
+      <figcaption>Percent of interventional drug and biologic trials in each phase with each feature: randomized allocation; double, triple or quadruple masking; a placebo comparator arm; eligibility open to healthy volunteers, or to children under 18; an industry lead sponsor; a site in the United States; terminated or withdrawn status; and, of completed trials, posted results. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="enrollment-chart"></div>
+      <figcaption>The same trials by enrollment, actual for finished trials and planned for the rest: percent of each phase in each band. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="reporting" data-lens="clinical" data-nav="Results reporting">
+    <header class="head"><p class="label">Reporting results</p><h2 data-finding="reporting">Reporting results</h2><p class="dek" id="reporting-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="reporting-chart"></div>
+      <figcaption>Share of trials that had submitted results to ClinicalTrials.gov by each month after primary completion, Kaplan–Meier, for interventional phase 2, 3 and 4 trials of an FDA-regulated drug or biologic whose actual primary completion fell in 2018 to 2021. FDAAA and 42 CFR Part 11 give such trials a year; a certification or an extension request can delay that, and trials that filed one form their own curve. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="attrition" data-lens="basic clinical" data-nav="Attrition and cost">
+    <header class="head"><p class="label">Attrition and cost</p><h2 data-finding="attrition">Attrition and cost</h2><p class="dek" id="attrition-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="attrition-chart"></div>
+      <figcaption>Probability that an industry drug development program in phase 1 reaches approval, by therapeutic group, with 95% intervals from the published standard errors, log scale, for development paths from 2000 to 2015. Metabolic includes endocrine, autoimmune includes inflammation, and CNS is the central nervous system. Fixed table, from Wong, Siah and Lo 2019, table 2; not refreshed weekly.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="transitions-chart"></div>
+        <figcaption>Percent of programs that move from each phase to the next, and from phase 1 to approval, by therapeutic group, as printed in Wong, Siah and Lo 2019, table 2. Fixed table.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="estimates-chart"></div>
+        <figcaption>Published estimates of the chance that a drug in phase 1 reaches approval, as Wong, Siah and Lo 2019 set them side by side in table 1, with the years each study covers. Fixed table.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="psychedelics" data-lens="clinical" data-nav="Psychedelics">
+    <header class="head"><p class="label">Psychedelics and cannabinoids</p><h2 data-finding="psychedelics">Psychedelics and cannabinoids</h2><p class="dek" id="psychedelics-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="psychedelics-chart"></div>
+      <figcaption>Interventional trials by the year they started, actual or planned. A trial counts for a compound when one of its drug, biologic or supplement interventions is named for it or lists it among its other names, including code names such as COMP360, MM120 and GH001; DMT excludes the disease-modifying therapies of multiple sclerosis, and ketamine and esketamine count in trials of depression. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="cannabinoids-chart"></div>
+      <figcaption>The same count for cannabidiol; for THC and its analogues, dronabinol, nabilone and nabiximols; and for cannabis itself. A trial of a mixed extract counts under each name it carries. Source: ClinicalTrials.gov API.</figcaption>
+    </figure>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 6</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>

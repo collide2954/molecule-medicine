@@ -1,6 +1,6 @@
 import snapshot from './snapshot.js';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST,
 } from './facts.js';
 import {
   exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds, duration,
@@ -28,6 +28,9 @@ import {
 import {
   pkSummary, ddiMatrix, transporterMatrix, perpetrators, cipaSorted,
 } from './pharmacokinetics.js';
+import {
+  registrations, designShares, enrollmentShares, statusRows, reportingCurves, psychoactiveSeries, attritionForest,
+} from './trials.js';
 import {
   hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend, curves, heatmap, html,
 } from './charts.js';
@@ -1433,6 +1436,200 @@ const renderCipa = () => {
   attachData('#herg-chart', 'herg-margins', ['Drug', 'Risk', 'hERG margin'], rows.map((r) => [r.drug, r.risk, r.margin.hERG]));
 };
 
+const BAND_COLORS = {
+  p1: 'var(--s2)', p2: 'var(--s4)', p3: 'var(--s1)', p4: 'var(--s3)', na: 'var(--data)',
+};
+
+const plainHead = (s) => s.replaceAll(',', '');
+const percentOf = (v) => Number((v * 100).toFixed(1));
+
+const renderRegistry = () => {
+  const t = snapshot.trials;
+  const r = registrations(snapshot);
+  const at = (year) => r.totals[r.years.indexOf(year)];
+  const status = statusRows(snapshot);
+  const unknown = status.find((s) => s.key === 'UNKNOWN')?.n ?? 0;
+  const results = t.fields.HasResults.values.find((v) => v.value === 'true')?.n ?? 0;
+  const last = r.years.at(-1);
+  $('#registry-dek').textContent = `Drug and biologic trials first posted rose from ${exact(at(2004))} in 2004 to ${exact(at(2005))} in 2005, the year ICMJE journals made registration a condition of publication, and numbered ${exact(at(last))} in ${last}. ${exact(r.before)} carry first-posted dates before the registry opened to the public in February 2000. Of all ${exact(t.total)} studies, ${pct(results / t.total)} have posted results and ${pct(unknown / t.total)} have an unknown status.`;
+  stackedArea({
+    mount: $('#registry-chart'),
+    years: r.years,
+    series: r.bands.map((b) => ({
+      key: b.key, label: b.label, color: BAND_COLORS[b.key], values: b.values,
+    })),
+    aria: 'Drug and biologic trials first posted each year, by phase',
+  });
+  attachData('#registry-chart', 'trial-registrations', ['Year', ...r.bands.map((b) => b.label), 'All'], r.years.map((y, i) => [y, ...r.bands.map((b) => b.values[i]), r.totals[i]]));
+  dotplot({
+    mount: $('#status-chart'),
+    rows: status.map((s) => ({
+      key: s.key, label: s.label, value: s.n, hi: s.key === 'UNKNOWN',
+    })),
+    labelShare: 0.42,
+    aria: 'Studies on ClinicalTrials.gov by overall status',
+    describe: (row) => tipLines(plural(row.value, 'study', 'studies'), row.label, `${pct(row.value / t.total)} of all studies`),
+  });
+  attachData('#status-chart', 'study-statuses', ['Status', 'Studies'], status.map((s) => [s.label, s.n]));
+};
+
+const renderDesign = () => {
+  const d = designShares(snapshot);
+  const e = enrollmentShares(snapshot);
+  const gi = (k) => d.groups.findIndex((g) => g.key === k);
+  const at = (g, f) => d.shares[gi(g)][d.features.findIndex((x) => x.key === f)];
+  const small = (g) => e.shares[gi(g)][0] + e.shares[gi(g)][1];
+  const large = (g) => e.shares[gi(g)][4] + e.shares[gi(g)][5];
+  $('#design-dek').textContent = `From phase 1 to phase 3 the share randomized rises from ${pct(at('p1', 'randomized'))} to ${pct(at('p3', 'randomized'))}, and the share with a placebo arm from ${pct(at('p1', 'placebo'))} to ${pct(at('p3', 'placebo'))}. Industry leads ${pct(at('p1', 'industry'))} of phase 1 trials and ${pct(at('p4', 'industry'))} of phase 4. ${pct(small('p1'))} of phase 1 trials enrol 50 people or fewer, and ${pct(large('p3'))} of phase 3 trials more than 300. Of completed trials, ${pct(at('p3', 'results'))} in phase 3 have posted results and ${pct(at('p1', 'results'))} in phase 1, which the law does not require to report.`;
+  const whole = (v) => String(Math.round(v * 100));
+  grid({
+    mount: $('#design-chart'),
+    rows: d.groups.map((g) => g.label),
+    cols: d.features.map((f) => f.label),
+    values: d.shares,
+    color: 'var(--s2)',
+    shade: (v) => heatShade(v, 1),
+    format: whole,
+    aria: 'Design features of drug trials by phase',
+    describe: (i, j) => {
+      const row = snapshot.trials.design.find((x) => x.key === d.groups[i].key);
+      return tipLines(pct(d.shares[i][j]), `${d.groups[i].label} trials: ${d.features[j].label}`, `${exact(row.features[j])} of ${exact(j === d.features.length - 1 ? row.completed : row.total)}`);
+    },
+  });
+  attachData('#design-chart', 'trial-design', ['Phase', 'Trials', 'Completed', ...d.features.map((f) => `${plainHead(f.label)} %`)], d.groups.map((g, i) => {
+    const row = snapshot.trials.design.find((x) => x.key === g.key);
+    return [g.label, row.total, row.completed, ...d.shares[i].map(percentOf)];
+  }));
+  grid({
+    mount: $('#enrollment-chart'),
+    rows: d.groups.map((g) => g.label),
+    cols: e.bins.map((b) => b.label),
+    values: e.shares,
+    color: 'var(--s4)',
+    shade: (v) => heatShade(v, 0.6),
+    format: whole,
+    aria: 'Enrollment of drug trials by phase',
+    describe: (i, j) => tipLines(pct(e.shares[i][j]), `${d.groups[i].label} trials enrolling ${e.bins[j].label}`),
+  });
+  attachData('#enrollment-chart', 'trial-enrollment', ['Phase', ...e.bins.map((b) => `${plainHead(b.label)} %`)], d.groups.map((g, i) => [g.label, ...e.shares[i].map(percentOf)]));
+};
+
+const SPONSOR_COLORS = {
+  industry: 'var(--s2)', federal: 'var(--s4)', other: 'var(--s3)', certified: 'var(--data)',
+};
+
+const renderReporting = () => {
+  const R = snapshot.reporting;
+  const list = reportingCurves(snapshot, 60);
+  const by = Object.fromEntries(list.map((c) => [c.key, c]));
+  const cert = R.groups.find((g) => g.key === 'certified');
+  const month = (m) => (m === null ? 'none yet' : String(m));
+  $('#reporting-dek').textContent = `A year after primary completion, ${pct(by.industry.at12)} of industry trials had submitted results, against ${pct(by.federal.at12)} of NIH and other federal trials and ${pct(by.other.at12)} of those led by universities, hospitals and others; half had submitted by months ${month(by.industry.median)}, ${month(by.federal.median)} and ${month(by.other.median)}. The ${exact(cert.n)} trials that filed a certification or extension request to delay, ${exact(cert.sponsors.industry)} of them industry’s, are not in those shares. By ${day(R.asOf)}, ${pct(1 - by.industry.ever)} of industry trials and ${pct(1 - by.other.ever)} of academic and other trials still had none. DeVito et al. counted 40.9% on time among trials due by September 2019.`;
+  curves({
+    mount: $('#reporting-chart'),
+    series: list.map((c) => ({ label: c.label, color: SPONSOR_COLORS[c.key], points: c.points })),
+    xDomain: [0, 60],
+    yDomain: [0, 1],
+    xTicks: [0, 12, 24, 36, 48, 60],
+    xLabel: 'months after primary completion',
+    yLabel: 'submitted results',
+    marks: [{ x: 12, label: 'one year' }],
+    aria: 'Share of FDA-regulated drug trials that had submitted results, by months after primary completion',
+    describe: (i) => tipLines(`${i} months after primary completion`, ...list.map((c) => `${c.label}: ${pct(c.points[i].y)} of ${exact(c.n)}`)),
+  });
+  attachData('#reporting-chart', 'results-submission', ['Months', ...list.map((c) => `${c.label} %`)], list[0].points.map((p, i) => [p.x, ...list.map((c) => percentOf(c.points[i].y))]));
+};
+
+const renderAttrition = () => {
+  const A = ATTRITION;
+  const w = RD_COST.wouters2020;
+  const dm = RD_COST.dimasi2016;
+  const onc = A.groups.find((g) => g.label === 'Oncology');
+  const all = [...A.groups, A.overall, A.withoutOncology];
+  const byPhase = A.estimates.find((x) => x.label === 'Wong 2019, phase by phase');
+  $('#attrition-dek').textContent = `Path by path, Wong et al. estimate that ${A.overall.p1a}% of programs in phase 1 reach approval; counted phase by phase, as earlier studies did, ${byPhase.p1a}%. Oncology’s rate was ${onc.p1a}%, against ${A.oncology.prior}% in earlier studies; year by year it fell to ${A.oncology.byYear[2012]}% in 2012, then rose to ${A.oncology.byYear[2014]}% in 2014 and ${A.oncology.byYear[2015]}% in 2015. Oncology programs that chose patients by biomarker reached approval ${A.biomarker.with}% of the time, against ${A.biomarker.without}% without, in 2005 to 2015, and orphan programs ${A.orphan.overall}%. Counting the failures, a new drug cost a median $${Math.round(w.median)} million in 2018 dollars, across the ${w.withData} of ${w.approvals} FDA approvals of 2009 to 2018 with public figures, and an average $${(dm.capitalized / 1000).toFixed(2)} billion in 2013 dollars in a survey of ${dm.firms} firms.`;
+  const pathsOf = (label) => all.find((g) => g.label === label)?.paths;
+  forest({
+    mount: $('#attrition-chart'),
+    groups: attritionForest(),
+    reference: A.overall.p1a,
+    format: (v) => `${decimal(v, 1)}%`,
+    aria: 'Probability of approval from phase 1 by therapeutic group, Wong, Siah and Lo 2019',
+    describe: (r) => tipLines(`${r.rs}% reach approval`, r.label, `95% interval ${r.lo}% to ${r.hi}%`, `${exact(pathsOf(r.label))} development paths`),
+  });
+  attachData('#attrition-chart', 'success-rates', ['Therapeutic group', 'Paths from phase 1', 'Phase 1 to 2 %', 'Phase 2 to 3 %', 'Phase 2 to approval %', 'Phase 3 to approval %', 'Phase 1 to approval %', 'Standard error %'], all.map((g) => [g.label, g.paths, g.p12, g.p23, g.p2a, g.p3a, g.p1a, g.se]));
+  const steps = [['p12', '1 to 2'], ['p23', '2 to 3'], ['p3a', '3 to approval'], ['p1a', '1 to approval']];
+  grid({
+    mount: $('#transitions-chart'),
+    rows: all.map((g) => g.label),
+    cols: steps.map(([, label]) => label),
+    values: all.map((g) => steps.map(([k]) => g[k])),
+    color: 'var(--s4)',
+    shade: (v) => heatShade(v, 100),
+    format: (v) => decimal(v, 1),
+    aria: 'Phase transition probabilities by therapeutic group, Wong, Siah and Lo 2019',
+    describe: (i, j) => tipLines(`${all[i][steps[j][0]]}%`, `${all[i].label}, phase ${steps[j][1]}`),
+  });
+  attachData('#transitions-chart', 'phase-transitions', ['Therapeutic group', ...steps.map(([, label]) => `Phase ${label} %`)], all.map((g) => [g.label, ...steps.map(([k]) => g[k])]));
+  dotplot({
+    mount: $('#estimates-chart'),
+    rows: A.estimates.map((x) => ({
+      key: x.label, label: `${x.label}, ${x.span}`, value: x.p1a, hi: x.label.startsWith('Wong'),
+    })),
+    scale: 'linear',
+    labelShare: 0.5,
+    labelMax: 300,
+    format: (v) => `${decimal(v, 1)}%`,
+    aria: 'Published estimates of the probability of approval from phase 1',
+    describe: (row) => {
+      const x = A.estimates.find((y) => y.label === row.key);
+      return tipLines(`${x.p1a}% from phase 1 to approval`, `${x.label}, ${x.scope}, ${x.span}`, `phase 1 to 2 ${x.p12}%, 2 to 3 ${x.p23}%, 3 to approval ${x.p3a}%`);
+    },
+  });
+  attachData('#estimates-chart', 'success-rate-estimates', ['Estimate', 'Scope', 'Years', 'Phase 1 to 2 %', 'Phase 2 to 3 %', 'Phase 3 to approval %', 'Phase 1 to approval %'], A.estimates.map((x) => [x.label, x.scope, x.span, x.p12, x.p23, x.p3a, x.p1a]));
+};
+
+const COMPOUND_STYLE = {
+  psilocybin: { color: 'var(--s1)' },
+  mdma: { color: 'var(--s2)' },
+  lsd: { color: 'var(--s5)' },
+  dmt: { color: 'var(--s4)', short: 'DMT, ayahuasca' },
+  meodmt: { color: 'var(--s3)' },
+  ibogaine: { color: 'var(--data)' },
+  ketamine: { color: 'var(--ink-2)', short: 'ketamine' },
+  cbd: { color: 'var(--s4)' },
+  thc: { color: 'var(--s3)', short: 'THC and analogues' },
+  cannabis: { color: 'var(--s1)' },
+};
+
+const peakOf = (s) => s.rows.reduce((a, b) => (b.y > a.y ? b : a));
+
+const drawCompounds = (mountSel, name, list, aria) => {
+  lines({
+    mount: $(mountSel),
+    series: list.map((s) => ({
+      label: COMPOUND_STYLE[s.key]?.short ?? s.label, color: COMPOUND_STYLE[s.key]?.color, rows: s.rows,
+    })),
+    scale: 'linear',
+    labelW: 124,
+    aria,
+    describe: (x) => tipLines(`Trials starting in ${x}`, ...list.map((s) => `${s.label}: ${s.rows.find((r) => r.x === x).y}`)),
+  });
+  attachData(mountSel, name, ['Year', ...list.map((s) => plainHead(s.label))], list[0].rows.map((r, i) => [r.x, ...list.map((s) => s.rows[i].y)]));
+};
+
+const renderPsychedelics = () => {
+  const last = snapshot.trials.years.at(-1);
+  const psy = psychoactiveSeries(snapshot, 'psychedelics', 2000, last);
+  const can = psychoactiveSeries(snapshot, 'cannabinoids', 2000, last);
+  const by = Object.fromEntries([...psy, ...can].map((s) => [s.key, s]));
+  const late = (s) => s.phases.p3 + s.phases.p23;
+  const cbd = peakOf(by.cbd);
+  $('#psychedelics-dek').textContent = `ClinicalTrials.gov lists ${exact(by.psilocybin.trials)} interventional trials of psilocybin, ${exact(late(by.psilocybin))} of them in phase 3 or 2/3; ${exact(by.mdma.trials)} of MDMA, ${exact(late(by.mdma))} late-phase; and ${exact(by.lsd.trials)} of LSD, ${exact(late(by.lsd))} late-phase. Ketamine and esketamine have ${exact(by.ketamine.trials)} trials in depression. Among cannabinoids, ${exact(by.cbd.trials)} trials name cannabidiol, and the most started in ${cbd.x}, ${exact(cbd.y)} of them. The lines end with ${last}; the totals include trials planned to start later.`;
+  drawCompounds('#psychedelics-chart', 'psychedelic-trials', psy, 'Psychedelic trials by start year');
+  drawCompounds('#cannabinoids-chart', 'cannabinoid-trials', can, 'Cannabinoid trials by start year');
+};
+
 const decode = () => {
   const value = $('#decoder-input').value;
   if (!value.trim()) {
@@ -1490,6 +1687,9 @@ const DATA_SOURCES = [
   ['FDA table of drugs that interact with CYP enzymes and transporter systems', FILES.fdaInteractions],
   ['CiPA IC50 values, Li et al. 2017, FDA CiPA repository', FILES.cipaIc50],
   ['CiPA training drugs, free Cmax and risk, FDA CiPA repository', FILES.cipaDrugs],
+  ['ClinicalTrials.gov study count', FILES.ctSize],
+  ['ClinicalTrials.gov field values across all studies', FILES.ctFields],
+  ['ClinicalTrials.gov studies, counted and paged by query', FILES.ctStudies],
 ];
 
 const renderSources = () => {
@@ -1506,7 +1706,7 @@ const renderSources = () => {
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
     `. Cite as: Basic & Clinical Pharmacology in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
-    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC and NCI data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
+    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI and ClinicalTrials.gov data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
 };
 
@@ -1581,6 +1781,11 @@ const drawCharts = () => {
   renderSimulator();
   renderDdi();
   renderCipa();
+  renderRegistry();
+  renderDesign();
+  renderReporting();
+  renderAttrition();
+  renderPsychedelics();
   applySearch();
 };
 

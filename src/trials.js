@@ -49,7 +49,7 @@ export const statusLabel = (value) => value.toLowerCase().replaceAll('_', ' ');
 export const statusRows = (snap) => snap.trials.fields.OverallStatus.values.map((v) => ({ key: v.value, label: statusLabel(v.value), n: v.n }));
 
 export const SPONSOR_LABELS = {
-  industry: 'Industry', federal: 'NIH and other federal', other: 'Universities, hospitals and others', certified: 'Delay certified',
+  industry: 'Industry', federal: 'NIH and other federal', other: 'Academic and other', certified: 'Delay certified',
 };
 
 const expand = (pairs) => pairs.flatMap(([m, c]) => Array(c).fill(m));
