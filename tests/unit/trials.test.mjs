@@ -13,10 +13,14 @@ test('ctFieldValues reads value counts for each field the registry reports', () 
     {
       field: 'protocolSection.statusModule.overallStatus', piece: 'OverallStatus', missingStudiesCount: 0, topValues: [{ value: 'COMPLETED', studiesCount: 300 }],
     },
+    {
+      type: 'BOOLEAN', piece: 'HasResults', field: 'hasResults', missingStudiesCount: 0, falseCount: 250, trueCount: 50,
+    },
   ];
   assert.deepEqual(ctFieldValues(json), {
     Phase: { missing: 5, values: [{ value: 'NA', n: 200 }, { value: 'PHASE2', n: 90 }] },
     OverallStatus: { missing: 0, values: [{ value: 'COMPLETED', n: 300 }] },
+    HasResults: { missing: 0, values: [{ value: 'false', n: 250 }, { value: 'true', n: 50 }] },
   });
 });
 
@@ -109,7 +113,7 @@ test('reportingTimes gives months to the first results submission and censors th
   ]);
 });
 
-test('sponsorGroup and reportingGroups split reporting times into industry, federal and other sponsors', () => {
+test('sponsorGroup and reportingGroups split reporting times by sponsor, with delay certifications apart', () => {
   assert.deepEqual(['INDUSTRY', 'NIH', 'FED', 'OTHER_GOV', 'OTHER', 'NETWORK', 'UNKNOWN', null].map(sponsorGroup), ['industry', 'federal', 'federal', 'other', 'other', 'other', 'other', 'other']);
   const times = [
     {
@@ -130,13 +134,16 @@ test('sponsorGroup and reportingGroups split reporting times into industry, fede
   ];
   assert.deepEqual(reportingGroups(times), [
     {
-      key: 'industry', n: 4, certified: 1, events: [[3, 1], [12, 2]], censored: [[60, 1]],
+      key: 'industry', n: 3, events: [[3, 1], [12, 1]], censored: [[60, 1]],
     },
     {
-      key: 'federal', n: 0, certified: 0, events: [], censored: [],
+      key: 'federal', n: 0, events: [], censored: [],
     },
     {
-      key: 'other', n: 1, certified: 0, events: [[30, 1]], censored: [],
+      key: 'other', n: 1, events: [[30, 1]], censored: [],
+    },
+    {
+      key: 'certified', n: 1, events: [[12, 1]], censored: [], sponsors: { industry: 1, federal: 0, other: 0 },
     },
   ]);
 });
@@ -169,6 +176,15 @@ test('matchesCompound reads intervention names and other names, telling DMT from
   assert.equal(matchesCompound(spl026, spec('meodmt')), false);
   assert.equal(matchesCompound(row([drug('BPL-003')]), spec('meodmt')), true);
   assert.equal(matchesCompound(row([drug('Ayahuasca'), drug('Esketamine')]), spec('dmt')), true);
+  assert.equal(matchesCompound(row([drug('DMT', [], 'DRUG')], ['Healthy Volunteers']), spec('dmt')), true);
+  assert.equal(matchesCompound(row([drug('DMT continuation')], ['Multiple Sclerosis']), spec('dmt')), false);
+  assert.equal(matchesCompound(row([drug('Standard MS DMT', ['Avonex'])], ['Relapsing Remitting MS']), spec('dmt')), false);
+});
+
+test('matchesCompound does not take a nerve-block cocktail abbreviated CBD for cannabidiol', () => {
+  assert.equal(matchesCompound(row([drug('Bupivacaine + CBD (clonidine, buprenorphine, dexamethasone)')]), spec('cbd')), false);
+  assert.equal(matchesCompound(row([drug('CBD oil')]), spec('cbd')), true);
+  assert.equal(matchesCompound(row([drug('GWP42003-P', ['Cannabidiol', 'Epidiolex'])]), spec('cbd')), true);
 });
 
 test('matchesCompound keeps drug interventions only and checks conditions where a compound asks for them', () => {
