@@ -4,6 +4,7 @@ import { targetFindings } from './targets.js';
 import { bioFindings } from './bioactivity.js';
 import { pkFindings } from './pharmacokinetics.js';
 import { trialFindings } from './trials.js';
+import { manufacturingFindings } from './manufacturing.js';
 
 const count = (list, key) => {
   const out = new Map();
@@ -218,4 +219,5 @@ export const findings = (snap) => ({
   ...bioFindings(snap),
   ...pkFindings(snap),
   ...trialFindings(snap),
+  ...manufacturingFindings(snap),
 });
