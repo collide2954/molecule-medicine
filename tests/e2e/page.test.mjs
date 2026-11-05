@@ -55,6 +55,7 @@ const CHAPTERS = {
   pharmacokinetics: ['pk', 'simulator', 'ddi', 'cipa'],
   trials: ['registry', 'design', 'reporting', 'attrition', 'psychedelics'],
   manufacturing: ['recalls', 'nitrosamines', 'shortages', 'excipients', 'limits'],
+  approvals: ['novel', 'calendar', 'paths', 'ema', 'generics', 'patents', 'biosimilars'],
   reference: ['decoder', 'sources'],
 };
 
@@ -447,6 +448,40 @@ test('impurity limit charts are marked fixed and lay out every solvent and eleme
   assert.equal(await page.locator('#solvent-chart [data-row]').count(), SOLVENTS.class1.length + SOLVENTS.class2.length);
   assert.equal(await page.locator('#pde-chart [data-cell]').count(), ELEMENTS.rows.length * 3);
   assert.match(await page.textContent('#limits figcaption'), /Fixed table/);
+  await page.close();
+});
+
+test('novel approval charts stack approvals by kind and count them by weekday and month', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#novel-chart path.area').count(), 3);
+  assert.equal(await page.locator('#weekday-chart [data-day]').count(), 6);
+  assert.equal(await page.locator('#month-chart [data-month]').count(), 12);
+  await page.close();
+});
+
+test('path and EMA charts draw shares by year, EU authorisations by kind and the FDA–EMA gap', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#paths-chart path.line').count(), 2);
+  assert.equal(await page.locator('#ema-chart path.area').count(), 3);
+  assert.ok(await page.locator('#lag-chart [data-bin]').count() >= 20);
+  await page.close();
+});
+
+test('generic and patent charts count applications, equivalence codes, patents and exclusivities', async () => {
+  const { page } = await open();
+  assert.ok(await page.locator('#anda-chart [data-year]').count() >= 40);
+  assert.ok(await page.locator('#te-chart [data-row]').count() >= 6);
+  assert.equal(await page.locator('#copied-chart [data-row]').count(), 15);
+  assert.equal(await page.locator('#patent-chart [data-row]').count(), 15);
+  assert.ok(await page.locator('#expiry-chart [data-year]').count() >= 15);
+  assert.ok(await page.locator('#exclusivity-chart [data-row]').count() >= 10);
+  await page.close();
+});
+
+test('biosimilar charts count FDA’s biosimilars by year and by the molecule they copy', async () => {
+  const { page } = await open();
+  assert.ok(await page.locator('#biosimilar-chart [data-year]').count() >= 10);
+  assert.ok(await page.locator('#biosimilar-ref-chart [data-row]').count() >= 10);
   await page.close();
 });
 
