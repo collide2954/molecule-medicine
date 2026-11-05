@@ -48,6 +48,16 @@ export const SOURCES = {
   cipaRepo: 'https://github.com/FDA/CiPA',
   crumb2016: 'https://doi.org/10.1016/j.vascn.2016.03.009',
   li2017: 'https://doi.org/10.1161/CIRCEP.116.004628',
+  ctgov: 'https://clinicaltrials.gov/data-api/api',
+  zarin2011: 'https://doi.org/10.1056/NEJMsa1012065',
+  wong2019: 'https://doi.org/10.1093/biostatistics/kxx069',
+  hay2014: 'https://doi.org/10.1038/nbt.2786',
+  wouters2020: 'https://doi.org/10.1001/jama.2020.1166',
+  dimasi2016: 'https://doi.org/10.1016/j.jhealeco.2016.01.012',
+  devito2020: 'https://doi.org/10.1016/S0140-6736(19)33220-9',
+  anderson2015: 'https://doi.org/10.1056/NEJMsa1409364',
+  deangelis2004: 'https://doi.org/10.1056/NEJMe048225',
+  cfr42part11: 'https://www.ecfr.gov/current/title-42/chapter-I/subchapter-A/part-11',
 };
 
 export const SOURCE_TITLES = {
@@ -95,6 +105,16 @@ export const SOURCE_TITLES = {
   cipaRepo: ['Safety', 'FDA, Comprehensive in vitro Proarrhythmia Assay model code and data'],
   crumb2016: ['Safety', 'Crumb et al. 2016, An evaluation of 30 clinical drugs against the comprehensive in vitro proarrhythmia assay (CiPA) proposed ion channel panel, Journal of Pharmacological and Toxicological Methods 81:251'],
   li2017: ['Safety', 'Li et al. 2017, Improving the in silico assessment of proarrhythmia risk by combining hERG channel–drug binding kinetics and multichannel pharmacology, Circulation: Arrhythmia and Electrophysiology 10:e004628'],
+  ctgov: ['Databases and classifications', 'ClinicalTrials.gov, the National Library of Medicine’s registry and results database, API version 2'],
+  zarin2011: ['Databases and classifications', 'Zarin et al. 2011, The ClinicalTrials.gov results database: update and key issues, New England Journal of Medicine 364:852'],
+  wong2019: ['Trials and development', 'Wong, Siah and Lo 2019, Estimation of clinical trial success rates and related parameters, Biostatistics 20:273'],
+  hay2014: ['Trials and development', 'Hay et al. 2014, Clinical development success rates for investigational drugs, Nature Biotechnology 32:40'],
+  wouters2020: ['Trials and development', 'Wouters, McKee and Luyten 2020, Estimated research and development investment needed to bring a new medicine to market, 2009–2018, JAMA 323:844'],
+  dimasi2016: ['Trials and development', 'DiMasi, Grabowski and Hansen 2016, Innovation in the pharmaceutical industry: new estimates of R&D costs, Journal of Health Economics 47:20'],
+  devito2020: ['Trials and development', 'DeVito, Bacon and Goldacre 2020, Compliance with legal requirement to report clinical trial results on ClinicalTrials.gov: a cohort study, Lancet 395:361'],
+  anderson2015: ['Trials and development', 'Anderson et al. 2015, Compliance with results reporting at ClinicalTrials.gov, New England Journal of Medicine 372:1031'],
+  deangelis2004: ['Trials and development', 'De Angelis et al. 2004, Clinical trial registration: a statement from the International Committee of Medical Journal Editors, New England Journal of Medicine 351:1250'],
+  cfr42part11: ['Regulation', '42 CFR Part 11, Clinical trials registration and results information submission'],
 };
 
 export const GENETIC_SUPPORT = {
@@ -137,6 +157,65 @@ export const GENETIC_SUPPORT = {
     { phase: 'Phase III', supported: 90, total: 1551 },
     { phase: 'Launched', supported: 189, total: 1519 },
   ],
+};
+
+const pos = (label, paths, paths2, paths3, p12, p23, p2a, p3a, p1a, se) => ({
+  label, paths, paths2, paths3, p12, p23, p2a, p3a, p1a, se,
+});
+
+export const ATTRITION = {
+  source: 'wong2019',
+  span: '2000–2015',
+  groups: [
+    pos('Vaccines', 1869, 1235, 609, 76.8, 58.2, 42.1, 85.4, 33.4, 1.2),
+    pos('Ophthalmology', 674, 461, 207, 87.1, 60.7, 33.6, 74.9, 32.6, 2.2),
+    pos('Cardiovascular', 2810, 1858, 964, 73.3, 65.7, 32.3, 62.2, 25.5, 0.9),
+    pos('Infectious disease', 3963, 2314, 1078, 70.1, 58.3, 35.1, 75.3, 25.2, 0.8),
+    pos('Genitourinary', 757, 475, 212, 68.7, 57.1, 29.7, 66.5, 21.6, 1.6),
+    pos('Metabolic and endocrine', 3589, 2357, 1101, 76.2, 59.7, 24.1, 51.6, 19.6, 0.7),
+    pos('Autoimmune and inflammation', 5086, 2910, 969, 69.8, 45.7, 21.2, 63.7, 15.1, 0.6),
+    pos('Central nervous system', 4924, 3037, 1156, 73.2, 51.9, 19.5, 51.1, 15, 0.6),
+    pos('Oncology', 17368, 6533, 1236, 57.6, 32.7, 6.7, 35.5, 3.4, 0.2),
+  ],
+  overall: pos('All groups', 41040, 21180, 7532, 66.4, 58.3, 35.1, 59, 13.8, 0.2),
+  withoutOncology: pos('All but oncology', 23672, 14647, 6296, 73, 27.3, 27.3, 63.6, 20.9, 0.3),
+  estimates: [
+    {
+      label: 'Wong 2019, path by path', scope: 'all indications', span: '2000–2015', p12: 66.4, p23: 58.3, p3a: 59, p1a: 13.8,
+    },
+    {
+      label: 'Wong 2019, phase by phase', scope: 'all indications', span: '2000–2015', p12: 38.8, p23: 38.2, p3a: 59, p1a: 6.9,
+    },
+    {
+      label: 'Wong 2019, lead indications', scope: 'lead indications', span: '2000–2015', p12: 75.8, p23: 55.9, p3a: 70, p1a: 21.6,
+    },
+    {
+      label: 'Thomas 2016', scope: 'all indications', span: '2006–2015', p12: 63.2, p23: 30.7, p3a: 49.6, p1a: 9.6,
+    },
+    {
+      label: 'Hay 2014', scope: 'all indications', span: '2003–2011', p12: 64.5, p23: 32.4, p3a: 50, p1a: 10.4,
+    },
+    {
+      label: 'Hay 2014, lead indications', scope: 'lead indications', span: '2003–2011', p12: 66.5, p23: 39.5, p3a: 58.4, p1a: 15.3,
+    },
+    {
+      label: 'DiMasi 2010, lead indications', scope: 'lead indications', span: '1993–2009', p12: 71, p23: 45, p3a: 60, p1a: 19,
+    },
+  ],
+  biomarker: {
+    group: 'oncology', span: '2005–2015', without: 1.6, with: 10.7,
+  },
+  orphan: { overall: 6.2, oncology: 1.2, withoutOncology: 13.6 },
+  oncology: { prior: 5.1, byYear: { 2012: 1.7, 2014: 2.5, 2015: 8.3 } },
+};
+
+export const RD_COST = {
+  wouters2020: {
+    approvals: 355, withData: 63, companies: 47, span: '2009–2018', dollars: 2018, median: 985.3, medianLo: 683.6, medianHi: 1228.9, mean: 1335.9, meanLo: 1042.5, meanHi: 1637.5, nervous: 765.9, antineoplastic: 2771.6,
+  },
+  dimasi2016: {
+    drugs: 106, firms: 10, dollars: 2013, outOfPocket: 1395, capitalized: 2558, withPostApproval: 2870, growth: 8.5,
+  },
 };
 
 export const LANDMARKS = [
