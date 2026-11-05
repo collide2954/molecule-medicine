@@ -87,17 +87,20 @@ test('nitrosamineRecalls counts nitrosamine recalls by year and drug group and n
       recall_number: 'D-4', report_date: '20240901', product_description: 'Duloxetine capsules', reason_for_recall: 'CGMP Deviations: N-nitroso-duloxetine above the limit', openfda: { generic_name: ['DULOXETINE HYDROCHLORIDE'] },
     }),
     enforcement({ recall_number: 'D-5', report_date: '20240902', reason_for_recall: 'Failed Dissolution Specifications' }),
+    enforcement({
+      recall_number: 'D-6', report_date: '20220401', product_description: 'Accuretic tablets', reason_for_recall: 'CGMP Deviations: presence of N-nitroso-quinapril above the ADI', openfda: { generic_name: ['QUINAPRIL HYDROCHLORIDE AND HYDROCHLOROTHIAZIDE'] },
+    }),
+    enforcement({ recall_number: 'D-7', report_date: '20250401', product_description: 'Major Sleep Aid tablets', reason_for_recall: 'CGMP Deviations: N-Nitroso-desmethyl-doxylamine above the recommended limit' }),
   ];
   const n = nitrosamineRecalls(recallRecords({ results }));
-  assert.equal(n.total, 4);
-  assert.deepEqual(n.byYear, { 2018: { sartans: 1 }, 2019: { sartans: 2 }, 2024: { other: 1 } });
-  assert.deepEqual(n.drugs, [{
+  assert.equal(n.total, 6);
+  assert.deepEqual(n.byYear, {
+    2018: { sartans: 1 }, 2019: { sartans: 2 }, 2022: { other: 1 }, 2024: { other: 1 }, 2025: { other: 1 },
+  });
+  assert.deepEqual(n.drugs.map((d) => [d.name, d.group, d.n]), [['losartan', 'sartans', 2], ['doxylamine', 'other', 1], ['duloxetine', 'other', 1], ['quinapril', 'other', 1], ['valsartan', 'sartans', 1]]);
+  assert.deepEqual(n.drugs[0], {
     name: 'losartan', group: 'sartans', n: 2, first: 2019, last: 2019,
-  }, {
-    name: 'duloxetine', group: 'other', n: 1, first: 2024, last: 2024,
-  }, {
-    name: 'valsartan', group: 'sartans', n: 1, first: 2018, last: 2018,
-  }]);
+  });
 });
 
 const page = `
