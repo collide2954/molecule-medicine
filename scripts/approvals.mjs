@@ -238,7 +238,10 @@ const anyDate = (s) => {
   if (us) return `${us[3]}-${us[1].padStart(2, '0')}-${us[2].padStart(2, '0')}`;
   const long = t.match(/^([A-Za-z]+)\.? (\d{1,2}), (\d{4})$/);
   const month = long ? MONTHS.indexOf(long[1].slice(0, 3).toLowerCase()) : -1;
-  return month >= 0 ? `${long[3]}-${String(month + 1).padStart(2, '0')}-${long[2].padStart(2, '0')}` : null;
+  if (month >= 0) return `${long[3]}-${String(month + 1).padStart(2, '0')}-${long[2].padStart(2, '0')}`;
+  const bare = t.match(/^([A-Za-z]+)\.? (\d{4})$/);
+  const only = bare ? MONTHS.indexOf(bare[1].slice(0, 3).toLowerCase()) : -1;
+  return only >= 0 ? `${bare[2]}-${String(only + 1).padStart(2, '0')}` : null;
 };
 
 export const biosimilarRows = (html) => {
