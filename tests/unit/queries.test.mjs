@@ -18,6 +18,13 @@ test('the manufacturing queries page through openFDA recalls and shortages and r
   assert.match(FILES.iidPage, /^https:\/\/www\.fda\.gov\/drugs\/drug-approvals-and-databases\/inactive-ingredients-database-download$/);
 });
 
+test('the approvals queries fetch the Drugs@FDA and Orange Book data files, EMA’s medicines report and FDA’s biosimilar list', () => {
+  assert.equal(FILES.drugsAtFda, 'https://www.fda.gov/media/89850/download?attachment');
+  assert.equal(FILES.orangeBook, 'https://www.fda.gov/media/76860/download?attachment');
+  assert.equal(FILES.emaMedicines, 'https://www.ema.europa.eu/en/documents/report/medicines-output-medicines-report_en.xlsx');
+  assert.equal(FILES.biosimilars, 'https://www.fda.gov/drugs/biosimilars/biosimilar-product-information');
+});
+
 test('the trials queries count ClinicalTrials.gov drug trials by phase, design and year', () => {
   assert.equal(CTGOV, 'https://clinicaltrials.gov/api/v2/');
   assert.equal(FILES.ctSize, 'https://clinicaltrials.gov/api/v2/stats/size');
