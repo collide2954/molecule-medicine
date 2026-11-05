@@ -180,10 +180,11 @@ test('fdaEmaLag pairs FDA novel approvals with EU authorisations of the same sub
   assert.deepEqual(lag.lags, [18.6, 27.3]);
 });
 
-test('biosimilarRows reads FDA’s table of biosimilars with their reference products', () => {
-  const html = '<table><thead><tr><th>Biosimilar Name</th><th>Approval Date</th><th>Reference Product</th><th>More Information</th></tr></thead><tbody><tr><td>Zarxio (filgrastim-sndz)</td><td>March 6, 2015</td><td>Neupogen (filgrastim)</td><td><a href="x">Label</a></td></tr><tr><td>Amjevita (adalimumab-atto)</td><td>9/23/2016</td><td>Humira (adalimumab)</td><td></td></tr></tbody></table>';
+test('biosimilarRows reads FDA’s table of biosimilars with their reference products, to the month when FDA gives no day', () => {
+  const html = '<table><thead><tr><th>Biosimilar Name</th><th>Approval Date</th><th>Reference Product</th><th>More Information</th></tr></thead><tbody><tr><td>Zarxio (filgrastim-sndz)</td><td>March 6, 2015</td><td>Neupogen (filgrastim)</td><td><a href="x">Label</a></td></tr><tr><td>Amjevita (adalimumab-atto)</td><td>9/23/2016</td><td>Humira (adalimumab)</td><td></td></tr><tr><td>Lucamzi (ranibizumab-blrz)</td><td>October 2026</td><td>Lucentis (ranibizumab)</td><td></td></tr></tbody></table>';
   assert.deepEqual(biosimilarRows(html), [
     { name: 'Zarxio (filgrastim-sndz)', date: '2015-03-06', reference: 'Neupogen (filgrastim)' },
     { name: 'Amjevita (adalimumab-atto)', date: '2016-09-23', reference: 'Humira (adalimumab)' },
+    { name: 'Lucamzi (ranibizumab-blrz)', date: '2026-10', reference: 'Lucentis (ranibizumab)' },
   ]);
 });
