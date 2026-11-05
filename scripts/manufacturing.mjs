@@ -93,11 +93,16 @@ export const nitrosamineGroup = (r) => NITROSAMINE_GROUPS.find((g) => g.test.tes
 
 const SARTAN = /(valsartan|losartan|irbesartan|olmesartan|candesartan|telmisartan|azilsartan|eprosartan)/;
 
+const NAMED = /n-?nitroso[- ]+(?:(?:di)?desmethyl[- ]+|nor[- ]+)?([a-z]{4,})/i;
+const NOT_A_DRUG = /^(impurit|drug|compound|amine|related|substance|product)/;
+
 const drugName = (r, group) => {
   const t = drugText(r);
   if (group === 'sartans') return t.match(SARTAN)?.[1] ?? 'sartan';
   if (group === 'h2') return /nizatidine|axid/.test(t) ? 'nizatidine' : 'ranitidine';
   if (group !== 'other') return group;
+  const named = r.reason.match(NAMED)?.[1]?.toLowerCase();
+  if (named && !NOT_A_DRUG.test(named)) return named;
   return String(r.generic ?? r.product).toLowerCase().match(/[a-z]+/)?.[0] ?? 'unknown';
 };
 
