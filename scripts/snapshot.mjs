@@ -14,6 +14,9 @@ import {
 } from './manufacturing.mjs';
 import { readXlsx } from './readers.mjs';
 import {
+  delimited, novelApprovals, novelYears, approvalCalendar, andaApprovals, patentSummary, exclusivitySummary, teSummary, mostCopied, emaMedicines, emaYears, emaFlags, fdaEmaLag, biosimilarRows,
+} from './approvals.mjs';
+import {
   ctFieldValues, ctStudies, reportingTimes, reportingGroups, compoundTrials,
 } from './trials.mjs';
 import {
@@ -354,8 +357,53 @@ const excipients = async () => {
   return { link, ...iidSummary(iidRows(readXlsx(xlsx))) };
 };
 
+const zipTables = async (url, names, delimiter) => {
+  const files = unzip(await readFile(await file(url)));
+  return Object.fromEntries(Object.entries(names).map(([key, name]) => {
+    if (!files[name]) throw new Error(`no ${name} in ${url}`);
+    return [key, delimited(files[name].toString('latin1'), delimiter)];
+  }));
+};
+
+const fdaTables = memo(() => zipTables(FILES.drugsAtFda, {
+  applications: 'Applications.txt', classes: 'SubmissionClass_Lookup.txt', submissions: 'Submissions.txt', properties: 'SubmissionPropertyType.txt', products: 'Products.txt',
+}, '\t'));
+
+const novelData = memo(async () => novelApprovals(await fdaTables()));
+
+const approvals = async () => {
+  const last = now.getUTCFullYear() - 1;
+  const novel = await novelData();
+  return {
+    total: novel.length,
+    ...novelYears(novel, 1950, last),
+    calendar: approvalCalendar(novel, 1990),
+    latest: novel.filter((n) => Number(n.date.slice(0, 4)) === last),
+    generics: andaApprovals(await fdaTables(), 1984, last),
+  };
+};
+
+const orangebook = async () => {
+  const t = await zipTables(FILES.orangeBook, { products: 'products.txt', patents: 'patent.txt', exclusivity: 'exclusivity.txt' }, '~');
+  return {
+    ...patentSummary(t.products, t.patents, 15), exclusivity: exclusivitySummary(t.exclusivity), te: teSummary(t.products), copied: mostCopied(t.products, 15),
+  };
+};
+
+const ema = async () => {
+  const rows = emaMedicines(readXlsx(await readFile(await file(FILES.emaMedicines))));
+  if (!rows.length) throw new Error('no human medicines in EMA’s report');
+  return { ...emaYears(rows, 1995, now.getUTCFullYear() - 1), flags: emaFlags(rows), lag: fdaEmaLag(await novelData(), rows, 1995) };
+};
+
+const biosimilars = async () => {
+  const rows = biosimilarRows(await text(FILES.biosimilars));
+  if (!rows.length) throw new Error('no biosimilar table');
+  return { rows };
+};
+
 const SECTIONS = {
-  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa, trials, reporting, psychoactive, recalls, nitrosamines, shortages, excipients,
+  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa, trials, reporting, psychoactive, recalls, nitrosamines, shortages, excipients, approvals, orangebook, ema, biosimilars,
 };
 
 const only = process.argv.slice(2).filter((a) => SECTIONS[a]);

@@ -54,6 +54,10 @@ export const FILES = {
   fdaShortages: `${OPENFDA}drug/shortages.json`,
   nitrosamineLimits: 'https://www.fda.gov/regulatory-information/search-fda-guidance-documents/cder-nitrosamine-impurity-acceptable-intake-limits',
   iidPage: 'https://www.fda.gov/drugs/drug-approvals-and-databases/inactive-ingredients-database-download',
+  drugsAtFda: 'https://www.fda.gov/media/89850/download?attachment',
+  orangeBook: 'https://www.fda.gov/media/76860/download?attachment',
+  emaMedicines: 'https://www.ema.europa.eu/en/documents/report/medicines-output-medicines-report_en.xlsx',
+  biosimilars: 'https://www.fda.gov/drugs/biosimilars/biosimilar-product-information',
 };
 
 export const openfdaPage = (url, skip, limit = 1000) => `${url}?${new URLSearchParams({ limit: String(limit), skip: String(skip) })}`;
