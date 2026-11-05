@@ -91,16 +91,17 @@ test('monthsBetween measures months between registry dates, reading a bare month
   assert.equal(monthsBetween('2018-03-01', '2018-02-01'), -1);
 });
 
-test('reportingTimes gives months to the first results submission and censors the rest at the snapshot date', () => {
+test('reportingTimes counts a submission in the month it falls in and censors the rest at the last full month observed', () => {
   const rows = ctStudies({
     studies: [
       study('NCT1', { completion: '2018-01-15', submitted: '2019-01-15', posted: '2019-04-15', sponsor: 'INDUSTRY' }),
       study('NCT2', { completion: '2018-06', certified: '2018-11-02' }),
       study('NCT3', { completion: '2018-03-15', submitted: '2017-12-15' }),
       study('NCT4', { completion: null }),
+      study('NCT5', { completion: '2018-01-15', submitted: '2019-01-25' }),
     ],
   });
-  assert.deepEqual(reportingTimes(rows, '2020-06-15'), [
+  assert.deepEqual(reportingTimes(rows, '2020-06-30'), [
     {
       months: 12, event: true, sponsor: 'INDUSTRY', certified: false,
     },
@@ -109,6 +110,9 @@ test('reportingTimes gives months to the first results submission and censors th
     },
     {
       months: 0, event: true, sponsor: 'OTHER', certified: false,
+    },
+    {
+      months: 13, event: true, sponsor: 'OTHER', certified: false,
     },
   ]);
 });
