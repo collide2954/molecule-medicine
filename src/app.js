@@ -59,8 +59,8 @@ const ext = (href, text, props = {}) => h('a', { href, target: '_blank', rel: 'n
 const fill = (sel, ...nodes) => $(sel).replaceChildren(...nodes);
 const CAT = ['var(--s2)', 'var(--s1)', 'var(--s4)', 'var(--s3)', 'var(--s5)', 'var(--data)', 'var(--data-2)', 'var(--ink-2)'];
 const TILES = ['var(--s2)', 'var(--s1)', 'var(--s4)', 'var(--s3)', 'var(--s5)', 'var(--data)'];
-const SITE = 'https://collide2954.github.io/basic-clinical-pharm/';
-const REPO = 'https://github.com/collide2954/basic-clinical-pharm';
+const SITE = 'https://collide2954.github.io/molecule-medicine/';
+const REPO = 'https://github.com/collide2954/molecule-medicine';
 const chemblUrl = (id) => `https://www.ebi.ac.uk/chembl/explore/compound/${id}`;
 const capital = (s) => (s ? `${s[0].toUpperCase()}${s.slice(1)}` : s);
 
@@ -1920,7 +1920,7 @@ const renderSources = () => {
   fill('#data-use',
     'Every number on this page, as of ', when, ', is in ', h('a', { href: 'snapshot.json', download: '' }, 'snapshot.json'),
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
-    `. Cite as: Basic & Clinical Pharmacology in Numbers, snapshot of ${when}. ${SITE}`);
+    `. Cite as: Molecule/Medicine in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
     h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI, ClinicalTrials.gov, FDA and openFDA data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
@@ -1943,7 +1943,7 @@ const onSearch = (event) => {
   }, 120);
 };
 
-const THEME_KEY = 'basic-clinical-pharm-theme';
+const THEME_KEY = 'molecule-medicine-theme';
 const darkQuery = matchMedia('(prefers-color-scheme: dark)');
 const theme = () => document.documentElement.dataset.theme || (darkQuery.matches ? 'dark' : 'light');
 

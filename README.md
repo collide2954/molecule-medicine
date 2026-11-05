@@ -1,4 +1,4 @@
-# Basic & Clinical Pharmacology in Numbers
+# Molecule/Medicine in Numbers
 
 One static page about pharmacology from the bench to the bedside. It starts with the approved drugs themselves: their types, drug-likeness and size by decade, the rings, atoms and stereocentres they are built from, their names, flags and therapeutic classes. Then their targets: protein classes and families, actions, the most-drugged targets and the drug–target network, the Guide to Pharmacology’s receptors, channels and enzymes, orphans and endogenous ligands, genetic support, the Davis 2011 kinome panel and the structures in the PDB and GPCRdb. Then bioactivity: the 24 million activity records in ChEMBL, potency by assay type, ligand efficiency, kinobeads against KINOMEscan, binding kinetics from K4DD, receptor theory and binding explorers, and drug pairs from NCI-ALMANAC. Then pharmacokinetics: bioavailability, half-life and protein binding of approved drugs, a dosing simulator, FDA’s CYP and transporter interaction table, and CiPA’s cardiac ion channel margins. Then trials: drug and biologic trials registered on ClinicalTrials.gov by year and phase, their design and size by phase, how soon results reach the registry, the chance and cost of getting a drug through development, and psychedelic and cannabinoid trials. Then manufacturing: drug recalls by class, cause and firm, nitrosamine recalls and FDA’s acceptable intakes, the shortage list, the Inactive Ingredient Database, and the ICH limits on residual solvents and elemental impurities. Hand-built SVG charts with no runtime dependencies, each with its numbers as a table and a CSV, and molecules drawn from their ChEMBL molfiles.
 
@@ -18,7 +18,7 @@ Set `SNAPSHOT_CACHE` to a folder to keep the downloaded files between runs. The 
 
 ## Publish it
 
-The `Publish site` workflow deploys to `https://collide2954.github.io/basic-clinical-pharm/` on every push to `master` and after each weekly snapshot (Settings → Pages → Source: GitHub Actions). `.github/workflows/snapshot.yml` rebuilds the data every Sunday and commits it when numbers change. A section whose source fails keeps last week’s numbers and its own date, and the run log names it.
+The `Publish site` workflow deploys to `https://collide2954.github.io/molecule-medicine/` on every push to `master` and after each weekly snapshot (Settings → Pages → Source: GitHub Actions). `.github/workflows/snapshot.yml` rebuilds the data every Sunday and commits it when numbers change. A section whose source fails keeps last week’s numbers and its own date, and the run log names it.
 
 ## Where things live
 

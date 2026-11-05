@@ -1,4 +1,4 @@
-export const USER_AGENT = 'basic-clinical-pharm-snapshot (https://github.com/collide2954/basic-clinical-pharm)';
+export const USER_AGENT = 'molecule-medicine-snapshot (https://github.com/collide2954/molecule-medicine)';
 
 export const CHEMBL = 'https://www.ebi.ac.uk/chembl/api/data/';
 

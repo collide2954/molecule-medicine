@@ -40,7 +40,7 @@ import { clinvarGenes, hgncCoding, geneSupport } from './genetics.mjs';
 const OUT = new URL('../src/snapshot.js', import.meta.url);
 const now = new Date();
 const HEADERS = { 'user-agent': USER_AGENT, accept: 'application/json' };
-const CACHE = process.env.SNAPSHOT_CACHE ?? await mkdtemp(join(tmpdir(), 'basic-clinical-pharm-'));
+const CACHE = process.env.SNAPSHOT_CACHE ?? await mkdtemp(join(tmpdir(), 'molecule-medicine-'));
 await mkdir(CACHE, { recursive: true });
 
 const file = (url) => retry(async () => {

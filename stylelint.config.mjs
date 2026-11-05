@@ -17,7 +17,7 @@ const rule = (enabled) => (root, result) => {
 
 rule.ruleName = ruleName;
 rule.messages = messages;
-rule.meta = { url: 'https://github.com/collide2954/basic-clinical-pharm' };
+rule.meta = { url: 'https://github.com/collide2954/molecule-medicine' };
 
 export default {
   extends: ['stylelint-config-standard'],
