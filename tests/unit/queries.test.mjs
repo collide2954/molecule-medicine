@@ -2,7 +2,52 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
+  CTGOV, DRUG_TRIALS, PHASE_GROUPS, TRIAL_FEATURES, ENROLLMENT_BINS, REPORTING, PSYCHOACTIVE, PSYCHOACTIVE_FIELDS, ctCount, ctPage, postedIn, postedBefore, enrolled,
 } from '../../src/queries.js';
+
+test('the trials queries count ClinicalTrials.gov drug trials by phase, design and year', () => {
+  assert.equal(CTGOV, 'https://clinicaltrials.gov/api/v2/');
+  assert.equal(FILES.ctSize, 'https://clinicaltrials.gov/api/v2/stats/size');
+  const fields = new URL(FILES.ctFields);
+  assert.equal(fields.pathname, '/api/v2/stats/field/values');
+  for (const f of ['Phase', 'OverallStatus', 'StudyType', 'LeadSponsorClass', 'HasResults']) assert.ok(fields.searchParams.get('fields').split(',').includes(f), f);
+  assert.equal(FILES.ctStudies, 'https://clinicaltrials.gov/api/v2/studies');
+  assert.equal(DRUG_TRIALS, 'AREA[StudyType]INTERVENTIONAL AND AREA[InterventionType](DRUG OR BIOLOGICAL)');
+  assert.deepEqual(PHASE_GROUPS.map((g) => g.key), ['early1', 'p1', 'p12', 'p2', 'p23', 'p3', 'p4', 'na']);
+  assert.equal(PHASE_GROUPS.find((g) => g.key === 'p2').expr, 'AREA[Phase]PHASE2 AND NOT AREA[Phase]PHASE1 AND NOT AREA[Phase]PHASE3');
+  const count = new URL(ctCount('AREA[Phase]PHASE3'));
+  assert.equal(count.searchParams.get('filter.advanced'), 'AREA[Phase]PHASE3');
+  assert.equal(count.searchParams.get('countTotal'), 'true');
+  assert.equal(count.searchParams.get('pageSize'), '1');
+  assert.equal(postedIn(2010), 'AREA[StudyFirstPostDate]RANGE[2010-01-01,2010-12-31]');
+  assert.equal(postedBefore(2000), 'AREA[StudyFirstPostDate]RANGE[MIN,1999-12-31]');
+  for (const f of TRIAL_FEATURES) assert.match(f.expr, /^AREA\[\w+\]/, f.key);
+  assert.equal(TRIAL_FEATURES.find((f) => f.key === 'results').of, 'AREA[OverallStatus]COMPLETED');
+  assert.equal(TRIAL_FEATURES.find((f) => f.key === 'us').expr, 'AREA[LocationCountry]"United States"');
+  assert.deepEqual(ENROLLMENT_BINS.map((b) => [b.lo, b.hi]), [[0, 20], [21, 50], [51, 100], [101, 300], [301, 1000], [1001, 'MAX']]);
+  assert.equal(enrolled(ENROLLMENT_BINS[1]), 'AREA[EnrollmentCount]RANGE[21,50]');
+});
+
+test('the reporting cohort is FDA-regulated phase 2 to 4 drug trials that finished in 2018 to 2021, pulled a page at a time', () => {
+  assert.deepEqual([REPORTING.from, REPORTING.to], ['2018-01-01', '2021-12-31']);
+  for (const part of ['AREA[StudyType]INTERVENTIONAL', 'AREA[IsFDARegulatedDrug]true', 'AREA[Phase](PHASE2 OR PHASE3 OR PHASE4)', 'AREA[PrimaryCompletionDateType]ACTUAL', 'AREA[PrimaryCompletionDate]RANGE[2018-01-01,2021-12-31]']) assert.ok(REPORTING.expr.includes(part), part);
+  for (const f of ['NCTId', 'LeadSponsorClass', 'PrimaryCompletionDate', 'ResultsFirstSubmitDate', 'ResultsFirstPostDate', 'DispFirstSubmitDate']) assert.ok(REPORTING.fields.includes(f), f);
+  const first = new URL(ctPage({ 'filter.advanced': REPORTING.expr, fields: REPORTING.fields.join(',') }));
+  assert.equal(first.searchParams.get('pageSize'), '1000');
+  assert.equal(first.searchParams.has('pageToken'), false);
+  assert.equal(new URL(ctPage({ fields: 'NCTId' }, 'abc')).searchParams.get('pageToken'), 'abc');
+});
+
+test('psychedelics and cannabinoids are searched by name and matched against intervention names', () => {
+  assert.deepEqual(PSYCHOACTIVE.map((p) => p.key), ['psilocybin', 'mdma', 'lsd', 'dmt', 'meodmt', 'ibogaine', 'ketamine', 'cbd', 'thc', 'cannabis']);
+  assert.deepEqual([...new Set(PSYCHOACTIVE.map((p) => p.group))], ['psychedelics', 'cannabinoids']);
+  for (const p of PSYCHOACTIVE) {
+    assert.ok(p.search && p.label, p.key);
+    assert.doesNotThrow(() => new RegExp(p.pattern, 'i'), p.key);
+  }
+  assert.equal(PSYCHOACTIVE.find((p) => p.key === 'ketamine').cond, 'depression OR depressive');
+  for (const f of ['NCTId', 'StartDate', 'Phase', 'InterventionType', 'InterventionName', 'InterventionOtherName', 'Condition']) assert.ok(PSYCHOACTIVE_FIELDS.includes(f), f);
+});
 
 test('the ADME queries ask ChEMBL for human in vivo values of approved drugs and read the FDA and CiPA tables', () => {
   assert.deepEqual(PK_PARAMETERS.map((p) => [p.key, p.type, p.units]), [['f', 'F', '%'], ['halfLife', 'T1/2', 'hr'], ['ppb', 'PPB', '%']]);
