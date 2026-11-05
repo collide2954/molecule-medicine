@@ -43,6 +43,25 @@ test('potencyCategories counts FDA’s drug-specific nitrosamines in each CPCA c
   assert.deepEqual(ndsriSources(snap, 2), [{ source: 'a', n: 2 }, { source: 'c', n: 1 }]);
 });
 
+test('ndsriSources leaves out the rows FDA files under several drugs at once', () => {
+  const s = {
+    nitrosamines: {
+      limits: [
+        {
+          name: 'NDSRI 1', source: 'multiple', category: 1, limit: 26.5,
+        },
+        {
+          name: 'NDSRI 2', source: 'Multiple (see footnote)', category: 2, limit: 100,
+        },
+        {
+          name: 'NDSRI 3', source: 'colistin', category: 4, limit: 1500,
+        },
+      ],
+    },
+  };
+  assert.deepEqual(ndsriSources(s, 5), [{ source: 'colistin', n: 1 }]);
+});
+
 test('shortageView counts drugs in shortage, injectables and drugs being discontinued, by category and year posted', () => {
   const v = shortageView(snap);
   assert.deepEqual([v.current, v.injectable, v.discontinuing, v.resolved], [2, 1, 1, 1]);
