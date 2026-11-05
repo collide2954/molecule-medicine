@@ -457,6 +457,61 @@ export const PART6 = {
   },
 };
 
+const years7 = Array.from({ length: 36 }, (_, i) => 1990 + i);
+
+export const PART7 = {
+  approvals: {
+    total: 1500,
+    years: years7,
+    nda: years7.map((y) => (y < 2000 ? 20 : 30)),
+    mab: years7.map((y) => (y < 2000 ? 0 : 10)),
+    biologic: years7.map(() => 5),
+    priority: years7.map((y) => (y < 2000 ? 10 : 20)),
+    orphan: years7.map((y) => (y < 2000 ? 5 : 25)),
+    calendar: { from: 1990, weekdays: [0, 10, 10, 10, 10, 30, 0], months: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 15] },
+    latest: [{
+      appl: '761350', type: 'BLA', date: '2025-01-17', priority: true, orphan: false, name: 'DATROWAY', ingredient: 'DATOPOTAMAB DERUXTECAN-DLNK', sponsor: 'DAIICHI SANKYO',
+    }],
+    generics: { years: [2024, 2025], counts: [717, 659], tentative: 989 },
+  },
+  orangebook: {
+    patents: 6531,
+    applications: 1348,
+    substance: 1112,
+    product: 3463,
+    use: 4146,
+    top: [{
+      appl: '215430', name: 'AUVELITY', ingredient: 'BUPROPION HYDROCHLORIDE; DEXTROMETHORPHAN HYDROBROMIDE', patents: 148,
+    }, {
+      appl: '215431', name: 'SYMBRAVO', ingredient: 'MELOXICAM; RIZATRIPTAN BENZOATE', patents: 96,
+    }],
+    expiry: { 2026: 363, 2027: 437 },
+    exclusivity: [{ code: 'ODE', n: 383 }, { code: 'NCE', n: 221 }, { code: 'XYZ', n: 1 }],
+    te: { rx: 100, codes: [{ code: 'AB', n: 60 }, { code: 'AP', n: 20 }, { code: 'none', n: 20 }], rld: 30 },
+    copied: [{ ingredient: 'TADALAFIL', form: 'TABLET;ORAL', andas: 39 }],
+  },
+  ema: {
+    years: [2024, 2025],
+    novel: [60, 70],
+    generic: [10, 12],
+    biosimilar: [5, 6],
+    flags: {
+      total: 100, authorised: 80, refused: 5, conditional: 6, exceptional: 4, accelerated: 3, prime: 2, orphan: 10, advanced: 1, generic: 20, biosimilar: 11,
+    },
+    lag: {
+      since: 1995, fda: 50, matched: 10, fdaFirst: 8, emaFirst: 2, lags: [-12, -1, 1, 2, 3, 6, 9, 14, 30, 200],
+    },
+  },
+  biosimilars: {
+    rows: [
+      { name: 'Zarxio (filgrastim-sndz)', date: '2015-03-06', reference: 'Neupogen (filgrastim)' },
+      { name: 'Jubbonti (denosumab-bbdz)', date: '2024-03', reference: 'Prolia (denosumab)' },
+      { name: 'Wyost (denosumab-bbdz)', date: '2024-03', reference: 'Xgeva (denosumab)' },
+      { name: 'Lucamzi (ranibizumab-blrz)', date: '2026-10', reference: 'Lucentis (ranibizumab)' },
+    ],
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
