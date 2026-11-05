@@ -76,7 +76,8 @@ after(async () => {
 
 test('loads without errors, leads with the activities in ChEMBL and states every finding', async () => {
   const { page, errors } = await open();
-  assert.equal(await page.title(), 'Basic & Clinical Pharmacology in Numbers');
+  assert.equal(await page.title(), 'Molecule/Medicine in Numbers');
+  assert.equal((await page.textContent('.wordmark')).replace(/\s+/g, ' ').trim(), 'MOLECULE/MEDICINE in numbers');
   assert.equal((await page.textContent('[data-hero="activities"]')).trim(), exact(snapshot.chembl.activities));
   const f = findings(snapshot);
   for (const node of await page.$$('[data-finding]')) {
@@ -638,18 +639,19 @@ test('the data behind the page can be downloaded and cited', async () => {
   const href = await page.getAttribute('#data-use a[href$="snapshot.json"]', 'href');
   const json = await (await page.request.get(new URL(href, page.url()).href)).json();
   assert.equal(json.generated, snapshot.generated);
-  assert.ok(await page.locator('#data-use a[href="https://github.com/collide2954/basic-clinical-pharm"]').count());
-  assert.match(await page.textContent('#data-use'), /Cite as:.*https:\/\/collide2954\.github\.io\/basic-clinical-pharm\//);
+  assert.ok(await page.locator('#data-use a[href="https://github.com/collide2954/molecule-medicine"]').count());
+  assert.match(await page.textContent('#data-use'), /Cite as: Molecule\/Medicine in Numbers, snapshot of .*https:\/\/collide2954\.github\.io\/molecule-medicine\//);
   await page.close();
 });
 
 test('shared links get a title, description and preview image', async () => {
   const { page } = await open();
   const meta = (sel) => page.getAttribute(sel, 'content');
-  assert.equal(await meta('meta[property="og:title"]'), 'Basic & Clinical Pharmacology in Numbers');
+  assert.equal(await meta('meta[property="og:title"]'), 'Molecule/Medicine in Numbers');
+  assert.match(await meta('meta[property="og:image:alt"]'), /^Molecule\/Medicine in Numbers: /);
   assert.ok((await meta('meta[property="og:description"]')).length > 40);
-  assert.equal(await meta('meta[property="og:url"]'), 'https://collide2954.github.io/basic-clinical-pharm/');
-  assert.equal(await meta('meta[property="og:image"]'), 'https://collide2954.github.io/basic-clinical-pharm/og.png');
+  assert.equal(await meta('meta[property="og:url"]'), 'https://collide2954.github.io/molecule-medicine/');
+  assert.equal(await meta('meta[property="og:image"]'), 'https://collide2954.github.io/molecule-medicine/og.png');
   assert.equal(await meta('meta[name="twitter:card"]'), 'summary_large_image');
   const res = await page.request.get(new URL('og.png', page.url()).href);
   assert.equal(res.status(), 200);

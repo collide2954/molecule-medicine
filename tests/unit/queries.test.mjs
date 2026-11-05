@@ -87,8 +87,8 @@ test('every source file is an https URL', () => {
 });
 
 test('the user agent names the project', () => {
-  assert.match(USER_AGENT, /basic-clinical-pharm/);
-  assert.match(USER_AGENT, /github\.com\/collide2954\/basic-clinical-pharm/);
+  assert.match(USER_AGENT, /^molecule-medicine-snapshot /);
+  assert.match(USER_AGENT, /github\.com\/collide2954\/molecule-medicine\)$/);
 });
 
 test('the ChEMBL queries ask for approved drugs with their structures, properties and flags', () => {
