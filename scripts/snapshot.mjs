@@ -7,8 +7,12 @@ import { gunzipSync } from 'node:zlib';
 import { retry } from '../src/lib.js';
 import {
   FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
-  DRUG_TRIALS, PHASE_GROUPS, TRIAL_FEATURES, ENROLLMENT_BINS, REPORTING, PSYCHOACTIVE, PSYCHOACTIVE_FIELDS, ctCount, ctPage, postedIn, postedBefore, enrolled,
+  DRUG_TRIALS, PHASE_GROUPS, TRIAL_FEATURES, ENROLLMENT_BINS, REPORTING, PSYCHOACTIVE, PSYCHOACTIVE_FIELDS, ctCount, ctPage, postedIn, postedBefore, enrolled, openfdaPage,
 } from '../src/queries.js';
+import {
+  recallRecords, recallSummary, nitrosamineRecalls, nitrosamineLimits, shortageRecords, shortageSummary, iidLink, iidRows, iidSummary,
+} from './manufacturing.mjs';
+import { readXlsx } from './readers.mjs';
 import {
   ctFieldValues, ctStudies, reportingTimes, reportingGroups, compoundTrials,
 } from './trials.mjs';
@@ -305,8 +309,53 @@ const psychoactive = async () => {
   return { compounds };
 };
 
+const openfdaAll = async (url) => {
+  const first = await json(openfdaPage(url, 0));
+  const total = first.meta?.results?.total ?? 0;
+  const batches = [first];
+  for (let skip = 1000; skip < total; skip += 1000) batches.push(await json(openfdaPage(url, skip)));
+  return { meta: first.meta, results: batches.flatMap((p) => p.results ?? []) };
+};
+
+const unique = (rows, key) => {
+  const seen = new Set();
+  return rows.filter((r) => {
+    if (seen.has(key(r))) return false;
+    seen.add(key(r));
+    return true;
+  });
+};
+
+const recallData = memo(async () => {
+  const all = await openfdaAll(FILES.fdaEnforcement);
+  return { updated: all.meta?.last_updated ?? null, records: unique(recallRecords(all), (r) => r.id) };
+});
+
+const recalls = async () => {
+  const { updated, records } = await recallData();
+  return { updated, ...recallSummary(records, now.getUTCFullYear() - 1) };
+};
+
+const nitrosamines = async () => {
+  const { records } = await recallData();
+  return { recalls: nitrosamineRecalls(records), ...nitrosamineLimits(await text(FILES.nitrosamineLimits)) };
+};
+
+const shortages = async () => {
+  const all = await openfdaAll(FILES.fdaShortages);
+  return { updated: all.meta?.last_updated ?? null, ...shortageSummary(shortageRecords(all)) };
+};
+
+const excipients = async () => {
+  const link = iidLink(await text(FILES.iidPage));
+  if (!link) throw new Error('no Inactive Ingredient Database link');
+  const [, xlsx] = Object.entries(unzip(await readFile(await file(link)))).find(([name]) => /\.xlsx$/i.test(name)) ?? [];
+  if (!xlsx) throw new Error('no xlsx in the Inactive Ingredient Database download');
+  return { link, ...iidSummary(iidRows(readXlsx(xlsx))) };
+};
+
 const SECTIONS = {
-  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa, trials, reporting, psychoactive,
+  chembl, drugs, chemistry, targets, network, kinome, gtopdb, genetics, structures, activities, agreement, kinetics, almanac, pk, ddi, cipa, trials, reporting, psychoactive, recalls, nitrosamines, shortages, excipients,
 };
 
 const only = process.argv.slice(2).filter((a) => SECTIONS[a]);
