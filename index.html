@@ -723,8 +723,106 @@
     </figure>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-approvals" data-chapter="approvals">
     <p class="chapter-no">Part 7</p>
+    <h2 class="chapter-title">Approvals</h2>
+    <p class="chapter-dek">How drugs reach the market: FDA’s novel approvals and the days they fall on, the priority and orphan paths, FDA beside the European Medicines Agency, generic copies and their equivalence ratings, the patents and exclusivities that hold generics back, and the biosimilars that follow biologics.</p>
+  </div>
+
+  <section class="story wrap" id="novel" data-lens="clinical" data-nav="Novel approvals">
+    <header class="head"><p class="label">Novel approvals</p><h2 data-finding="novel">Novel approvals</h2><p class="dek" id="novel-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="novel-chart"></div>
+      <figcaption>First approvals each year since 1980 of new molecular entities, NDAs of chemical type 1, and of new biologics, BLAs of type 1, with the biologics split into antibodies, named for -mab, and the rest. Drugs@FDA counts a few approvals CDER does not list as novel, so its totals can run one or two above CDER’s. Source: FDA, Drugs@FDA data files.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="calendar" data-lens="clinical" data-nav="Approval calendar">
+    <header class="head"><p class="label">The approval calendar</p><h2 data-finding="calendar">The approval calendar</h2><p class="dek" id="calendar-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="weekday-chart"></div>
+        <figcaption>Novel approvals since 1990 by day of the week. Source: FDA, Drugs@FDA data files.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="month-chart"></div>
+        <figcaption>Novel approvals since 1990 by month, with last year’s in the popup. Source: FDA, Drugs@FDA data files.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="paths" data-lens="clinical" data-nav="Priority and orphan">
+    <header class="head"><p class="label">Priority review and orphan drugs</p><h2 data-finding="paths">Priority review and orphan drugs</h2><p class="dek" id="paths-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="paths-chart"></div>
+      <figcaption>Share of each year’s novel approvals that had priority review, and that carried an orphan designation, since the Orphan Drug Act of 1983. Source: FDA, Drugs@FDA data files.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="ema" data-lens="clinical" data-nav="FDA and EMA">
+    <header class="head"><p class="label">FDA and the European Medicines Agency</p><h2 data-finding="ema">FDA and the European Medicines Agency</h2><p class="dek" id="ema-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="ema-chart"></div>
+      <figcaption>Human medicines authorised through EMA’s centralised procedure each year since 1995, by kind; medicines since withdrawn count in the year they were authorised. Source: European Medicines Agency, medicine data.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="lag-chart"></div>
+      <figcaption>Months from FDA’s first approval of a new substance to its first EU authorisation, for substances both agencies approved as new since 1995, matched by name with salts and biologic suffixes dropped; negative where the EU came first. Sources: FDA, Drugs@FDA; EMA, medicine data.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="generics" data-lens="clinical" data-nav="Generics">
+    <header class="head"><p class="label">Generic drugs</p><h2 data-finding="generics">Generic drugs</h2><p class="dek" id="generics-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="anda-chart"></div>
+      <figcaption>Abbreviated new drug applications, the generic pathway the Hatch–Waxman Act opened in 1984, approved each year. Source: FDA, Drugs@FDA data files.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="te-chart"></div>
+        <figcaption>Prescription products in the Orange Book by therapeutic equivalence code, log scale: A codes are rated equivalent to their reference, B codes are not, and no code marks products without a rating. Source: FDA, Orange Book data files.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="copied-chart"></div>
+        <figcaption>The 15 drugs, by dosage form and route, with the most approved generics on the market. Source: FDA, Orange Book data files.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="patents" data-lens="clinical" data-nav="Patents and exclusivity">
+    <header class="head"><p class="label">Patents and exclusivity</p><h2 data-finding="patents">Patents and exclusivity</h2><p class="dek" id="patents-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="patent-chart"></div>
+        <figcaption>The 15 applications with the most patents in the Orange Book, each patent counted once however many strengths it covers. Source: FDA, Orange Book data files.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="expiry-chart"></div>
+        <figcaption>Orange Book patents by the year they expire, with pediatric extensions folded into their patent. Source: FDA, Orange Book data files.</figcaption>
+      </figure>
+    </div>
+    <figure class="fig narrow">
+      <div class="chart" id="exclusivity-chart"></div>
+      <figcaption>Applications holding each kind of marketing exclusivity, each counted once per application. Source: FDA, Orange Book data files.</figcaption>
+    </figure>
+  </section>
+
+  <section class="story wrap" id="biosimilars" data-lens="clinical" data-nav="Biosimilars">
+    <header class="head"><p class="label">Biosimilars</p><h2 data-finding="biosimilars">Biosimilars</h2><p class="dek" id="biosimilars-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="biosimilar-chart"></div>
+        <figcaption>Biosimilars FDA has approved each year through the pathway the 2010 Biologics Price Competition and Innovation Act created. Source: FDA, biosimilar product information.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="biosimilar-ref-chart"></div>
+        <figcaption>The molecules with the most biosimilars, with the reference products they copy in the popup. Source: FDA, biosimilar product information.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 8</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>

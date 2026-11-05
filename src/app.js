@@ -1,12 +1,12 @@
 import snapshot from './snapshot.js';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS as METALS,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS as METALS, LAWS,
 } from './facts.js';
 import {
   exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds, duration,
 } from './lib.js';
 import {
-  linearEdges, logEdges, histogram, summary,
+  linearEdges, logEdges, histogram, summary, quantile,
 } from './stats.js';
 import { unpackMol } from './chem.js';
 import { FILES } from './queries.js';
@@ -34,6 +34,9 @@ import {
 import {
   recallSeries, recallCauses, nitrosamineSeries, potencyCategories, ndsriSources, shortageView, elementGrid, CPCA,
 } from './manufacturing.js';
+import {
+  novelSeries, pathShares, calendarRows, lagBins, emaSeries, biosimilarYears, biosimilarReferences, exclusivityLabel, titleCase,
+} from './approvals.js';
 import {
   hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend, curves, heatmap, html,
 } from './charts.js';
@@ -1842,6 +1845,285 @@ const renderLimits = () => {
   attachData('#pde-chart', 'elemental-impurities', ['Element', 'Class', 'Oral PDE µg per day', 'Parenteral PDE µg per day', 'Inhalation PDE µg per day'], METALS.rows.map((r) => [`${r.el} ${r.name}`, r.cls, r.oral, r.parenteral, r.inhalation]));
 };
 
+const NOVEL_COLORS = { nda: 'var(--s2)', mab: 'var(--s1)', biologic: 'var(--s4)' };
+const NOVEL_FROM = 1980;
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+const yearsBetween = (years, from, to = Infinity) => years.map((y, i) => [y, i]).filter(([y]) => y >= from && y <= to).map(([, i]) => i);
+
+const renderNovel = () => {
+  const A = snapshot.approvals;
+  const s = novelSeries(snapshot);
+  const keep = yearsBetween(s.years, NOVEL_FROM);
+  const years = keep.map((i) => s.years[i]);
+  const series = s.series.map((x) => ({
+    key: x.key, label: x.label, color: NOVEL_COLORS[x.key], values: keep.map((i) => x.values[i]),
+  }));
+  const totals = years.map((_, j) => series.reduce((n, x) => n + x.values[j], 0));
+  const mean = (from, to) => {
+    const js = yearsBetween(years, from, to);
+    return js.reduce((n, j) => n + totals[j], 0) / js.length;
+  };
+  const last = years.at(-1);
+  const peak = totals.indexOf(Math.max(...totals));
+  const mab = series.find((x) => x.key === 'mab');
+  const firstMab = years[mab.values.findIndex((v) => v > 0)];
+  const recent = yearsBetween(years, last - 4);
+  const mabShare = recent.reduce((n, j) => n + mab.values[j], 0) / recent.reduce((n, j) => n + totals[j], 0);
+  $('#novel-dek').textContent = `Drugs@FDA records a mean of ${decimal(mean(1980, 1991), 1)} novel approvals a year in 1980 to 1991, ${decimal(mean(1993, 2009), 1)} in 1993 to 2009, after the 1992 Prescription Drug User Fee Act began funding review, and ${decimal(mean(2010, last), 1)} since 2010; the most in one year was ${exact(totals[peak])}, in ${years[peak]}. Antibodies, which it first lists in ${firstMab}, made up ${pct(mabShare)} of novel approvals in ${last - 4} to ${last}.`;
+  stackedArea({
+    mount: $('#novel-chart'),
+    years,
+    series,
+    aria: 'Novel drug approvals each year by kind',
+  });
+  attachData('#novel-chart', 'novel-approvals', ['Year', ...series.map((x) => plainHead(x.label)), 'All', 'Priority review', 'Orphan'], years.map((y, j) => [y, ...series.map((x) => x.values[j]), totals[j], A.priority[keep[j]], A.orphan[keep[j]]]));
+};
+
+const renderCalendar = () => {
+  const c = calendarRows(snapshot);
+  const total = c.weekdays.reduce((n, d) => n + d.n, 0);
+  const of = (key) => c.weekdays.find((d) => d.key === key).n;
+  const months = c.months.map((m, i) => ({ ...m, name: MONTH_NAMES[i] }));
+  const fewest = [...months].sort((a, b) => a.n - b.n)[0];
+  const average = total / 12;
+  const latest = snapshot.approvals.latest;
+  const year = latest[0]?.date.slice(0, 4) ?? '';
+  const weekend = of('Sat or Sun');
+  $('#calendar-dek').textContent = `Of the ${exact(total)} novel approvals since ${c.from}, ${exact(of('Fri'))} came on a Friday, ${pct(of('Fri') / total)}, against ${exact(of('Mon'))} on a Monday; ${weekend ? `${numberWord(weekend)} fell on a weekend` : 'none fell on a weekend'}. December brought ${exact(months[11].n)}, ${decimal(months[11].n / average, 1)} times the average month, and ${fewest.name} the fewest, ${exact(fewest.n)}.`;
+  columns({
+    mount: $('#weekday-chart'),
+    rows: c.weekdays,
+    key: (r) => r.key,
+    value: (r) => r.n,
+    attr: 'day',
+    aria: 'Novel approvals since 1990 by day of the week',
+    describe: (r) => tipLines(plural(r.n, 'approval'), `${r.key}, since ${c.from}`, pct(r.n / total)),
+  });
+  attachData('#weekday-chart', 'approvals-by-weekday', ['Day', 'Approvals'], c.weekdays.map((d) => [d.key, d.n]));
+  columns({
+    mount: $('#month-chart'),
+    rows: months,
+    key: (r) => r.key,
+    value: (r) => r.n,
+    attr: 'month',
+    aria: 'Novel approvals since 1990 by month',
+    describe: (r) => {
+      const names = latest.filter((n) => Number(n.date.slice(5, 7)) === months.indexOf(r) + 1).map((n) => titleCase(n.name));
+      return tipLines(plural(r.n, 'approval'), `${r.name}, since ${c.from}`, names.length ? `${year}: ${names.join(', ')}` : `none in ${year}`);
+    },
+  });
+  attachData('#month-chart', 'approvals-by-month', ['Month', 'Approvals', `Approved in ${year}`], months.map((m, i) => [m.name, m.n, latest.filter((n) => Number(n.date.slice(5, 7)) === i + 1).map((n) => titleCase(n.name)).join('; ')]));
+};
+
+const renderPaths = () => {
+  const p = pathShares(snapshot, 1983);
+  const last = p.years.at(-1);
+  const i = p.years.length - 1;
+  const half = p.years[p.orphan.findIndex((v) => v >= 0.5)];
+  const points = (values) => p.years.map((x, j) => ({ x, y: values[j] }));
+  const marks = { 1992: 'user fees', 2012: 'breakthrough' };
+  $('#paths-dek').textContent = `In ${last}, ${pct(p.priority[i])} of novel approvals had priority review, which FDA gives drugs that could markedly improve the treatment of serious conditions, and ${pct(p.orphan[i])} carried an orphan designation, for diseases affecting fewer than 200,000 people in the United States.${half ? ` Orphan drugs first made up half of a year’s novel approvals in ${half}.` : ''}`;
+  curves({
+    mount: $('#paths-chart'),
+    series: [{ label: 'priority review', color: 'var(--s1)', points: points(p.priority) }, { label: 'orphan designation', color: 'var(--s4)', points: points(p.orphan) }],
+    xDomain: [p.years[0], last],
+    yDomain: [0, 1],
+    xTicks: p.years.filter((y) => y % 5 === 0),
+    marks: LAWS.filter((l) => marks[l.year]).map((l) => ({ x: l.year, label: marks[l.year] })),
+    aria: 'Share of novel approvals with priority review and with an orphan designation each year',
+    describe: (j) => tipLines(String(p.years[j]), `priority review ${pct(p.priority[j])}`, `orphan designation ${pct(p.orphan[j])}`),
+  });
+  attachData('#paths-chart', 'priority-and-orphan', ['Year', 'Priority review %', 'Orphan %'], p.years.map((y, j) => [y, percentOf(p.priority[j]), percentOf(p.orphan[j])]));
+};
+
+const EMA_COLORS = { novel: 'var(--s2)', generic: 'var(--data)', biosimilar: 'var(--s4)' };
+
+const renderEma = () => {
+  const E = snapshot.ema;
+  const s = emaSeries(snapshot);
+  const f = E.flags;
+  const l = E.lag;
+  const sorted = [...l.lags].sort((a, b) => a - b);
+  $('#ema-dek').textContent = `EMA has authorised ${exact(f.authorised)} human medicines through its centralised procedure since 1995, ${exact(f.generic)} of them generics and ${exact(f.biosimilar)} biosimilars, and refused ${exact(f.refused)}. ${exact(f.conditional)} were authorised conditionally, ${exact(f.exceptional)} under exceptional circumstances, ${exact(f.accelerated)} after accelerated assessment and ${exact(f.prime)} with PRIME support. Of the ${exact(l.matched)} substances both agencies approved as new since ${l.since}, FDA came first with ${exact(l.fdaFirst)} and EMA with ${exact(l.emaFirst)}; the middle half of the gaps run from ${minus(quantile(sorted, 0.25))} to ${minus(quantile(sorted, 0.75))} months.`;
+  stackedArea({
+    mount: $('#ema-chart'),
+    years: s.years,
+    series: s.series.map((x) => ({
+      key: x.key, label: x.label, color: EMA_COLORS[x.key], values: x.values,
+    })),
+    aria: 'Medicines authorised through EMA’s centralised procedure each year by kind',
+  });
+  attachData('#ema-chart', 'eu-authorisations', ['Year', ...s.series.map((x) => x.label)], s.years.map((y, j) => [y, ...s.series.map((x) => x.values[j])]));
+  const bins = lagBins(snapshot, -60, 120, 6);
+  const counts = bins.map((b) => b.n);
+  const every = $('#lag-chart').clientWidth < 520 ? 48 : 24;
+  const span = (b) => {
+    if (b.from === -Infinity) return `EU first by more than ${-b.to} months`;
+    if (b.to === Infinity) return `EU ${b.from} months or more after FDA`;
+    return `${minus(b.from, 0)} to ${minus(b.to, 0)} months`;
+  };
+  histo({
+    mount: $('#lag-chart'),
+    bins: counts,
+    series: [{ key: 'lag', label: 'Substances', color: 'var(--s2)', values: counts }],
+    tickLabel: (b, j) => {
+      const x = bins[j];
+      if (!Number.isFinite(x.from)) return null;
+      if (x.to === Infinity) return `${x.from}+`;
+      return x.from % every === 0 ? minus(x.from, 0) : null;
+    },
+    tickEvery: 1,
+    aria: 'Months from FDA’s first approval of a new substance to its first EU authorisation',
+    describe: (j) => tipLines(plural(bins[j].n, 'substance'), span(bins[j])),
+  });
+  attachData('#lag-chart', 'fda-ema-gap', ['From months', 'To months', 'Substances'], bins.map((b) => [Number.isFinite(b.from) ? b.from : 'earlier', Number.isFinite(b.to) ? b.to : 'later', b.n]));
+};
+
+const TE_LABELS = {
+  AA: 'no known bioequivalence problems',
+  AB: 'bioequivalence shown',
+  AN: 'aerosol solutions and powders',
+  AO: 'injectable oil solutions',
+  AP: 'injectable aqueous solutions',
+  AT: 'topical products',
+  BC: 'extended-release forms, not rated equivalent',
+  BD: 'documented bioequivalence problems',
+  BP: 'potential bioequivalence problems',
+  BS: 'drug standard deficiencies',
+  BX: 'data insufficient to rate',
+  none: 'no rating',
+};
+
+const formOf = (form) => lower(form).replace(';', ', ');
+
+const renderGenerics = () => {
+  const g = snapshot.approvals.generics;
+  const o = snapshot.orangebook;
+  const max = Math.max(...g.counts);
+  const maxYear = g.years[g.counts.indexOf(max)];
+  const ab = o.te.codes.find((c) => c.code === 'AB')?.n ?? 0;
+  const top = o.copied[0];
+  $('#generics-dek').textContent = `FDA approved ${exact(g.counts.at(-1))} generic applications in ${g.years.at(-1)}, against ${exact(g.counts[0])} in ${g.years[0]}, the first year of the Hatch–Waxman pathway; the most were ${exact(max)}, in ${maxYear}. ${exact(g.tentative)} more hold tentative approval, ready but for patents or exclusivity still in force. Of the ${exact(o.te.rx)} prescription products in the Orange Book, ${pct(ab / o.te.rx)} are rated AB, shown bioequivalent to their reference. The most-copied drug is ${lower(top.ingredient)} (${formOf(top.form)}), with ${exact(top.andas)} generics on the market.`;
+  const rows = g.years.map((year, i) => ({ year, n: g.counts[i] }));
+  columns({
+    mount: $('#anda-chart'),
+    rows,
+    key: (r) => r.year,
+    value: (r) => r.n,
+    aria: 'Generic drug applications approved each year',
+    describe: (r) => tipLines(plural(r.n, 'generic application'), `approved in ${r.year}`),
+  });
+  attachData('#anda-chart', 'generic-approvals', ['Year', 'Generic applications approved'], rows.map((r) => [r.year, r.n]));
+  dotplot({
+    mount: $('#te-chart'),
+    rows: o.te.codes.map((c) => ({
+      key: c.code, label: c.code === 'none' ? 'no code' : c.code, value: c.n, hi: c.code === 'AB',
+    })),
+    labelShare: 0.3,
+    aria: 'Orange Book prescription products by therapeutic equivalence code',
+    describe: (row) => {
+      const c = o.te.codes.find((x) => x.code === row.key);
+      return tipLines(plural(c.n, 'product'), c.code === 'none' ? 'no code' : `${c.code}, ${TE_LABELS[c.code] ?? 'see the Orange Book'}`, pct(c.n / o.te.rx));
+    },
+  });
+  attachData('#te-chart', 'equivalence-codes', ['Code', 'Meaning', 'Products'], o.te.codes.map((c) => [c.code, TE_LABELS[c.code] ?? '', c.n]));
+  dotplot({
+    mount: $('#copied-chart'),
+    rows: o.copied.map((c) => ({ key: `${c.ingredient}|${c.form}`, label: `${lower(c.ingredient)}, ${formOf(c.form)}`, value: c.andas })),
+    scale: 'linear',
+    labelShare: 0.58,
+    labelMax: 340,
+    aria: 'Drugs with the most generics on the market',
+    describe: (row) => {
+      const c = o.copied.find((x) => `${x.ingredient}|${x.form}` === row.key);
+      return tipLines(plural(c.andas, 'generic'), lower(c.ingredient), formOf(c.form));
+    },
+  });
+  attachData('#copied-chart', 'most-copied', ['Ingredient', 'Form and route', 'Generics on the market'], o.copied.map((c) => [c.ingredient, c.form, c.andas]));
+};
+
+const renderPatents = () => {
+  const o = snapshot.orangebook;
+  const years = Object.keys(o.expiry).map(Number).sort((a, b) => a - b);
+  const nextYear = new Date(snapshot.generated).getUTCFullYear() + 1;
+  const peakYear = years.reduce((a, b) => (o.expiry[b] > o.expiry[a] ? b : a));
+  const held = (code) => o.exclusivity.find((e) => e.code === code)?.n ?? 0;
+  const [t1, t2] = o.top;
+  $('#patents-dek').textContent = `Of the ${exact(o.patents)} patents listed, ${exact(o.substance)} claim the drug substance, ${exact(o.product)} the drug product and ${exact(o.use)} a method of use; one patent can claim more than one. ${titleCase(t1.name)} lists ${exact(t1.patents)} and ${titleCase(t2.name)} ${exact(t2.patents)}. ${exact(o.expiry[nextYear] ?? 0)} patents expire in ${nextYear}, and ${peakYear} has the most, ${exact(o.expiry[peakYear])}. Orphan drug exclusivity, seven years, is held by ${exact(held('ODE'))} applications, and new chemical entity exclusivity, five years, by ${exact(held('NCE'))}.`;
+  const repeated = new Set(o.top.map((t) => t.name).filter((n, i, all) => all.indexOf(n) !== i));
+  dotplot({
+    mount: $('#patent-chart'),
+    rows: o.top.map((t) => ({ key: t.appl, label: repeated.has(t.name) ? `${titleCase(t.name)}, NDA ${t.appl}` : titleCase(t.name), value: t.patents })),
+    scale: 'linear',
+    labelShare: 0.4,
+    aria: 'Applications with the most patents in the Orange Book',
+    describe: (row) => {
+      const t = o.top.find((x) => x.appl === row.key);
+      return tipLines(plural(t.patents, 'patent'), titleCase(t.name), `${lower(t.ingredient)}, NDA ${t.appl}`);
+    },
+  });
+  attachData('#patent-chart', 'most-patents', ['Application', 'Product', 'Ingredient', 'Patents'], o.top.map((t) => [t.appl, t.name, t.ingredient, t.patents]));
+  const rows = Array.from({ length: years.at(-1) - years[0] + 1 }, (_, i) => years[0] + i).map((year) => ({ year, n: o.expiry[year] ?? 0 }));
+  columns({
+    mount: $('#expiry-chart'),
+    rows,
+    key: (r) => r.year,
+    value: (r) => r.n,
+    aria: 'Orange Book patents by year of expiry',
+    describe: (r) => tipLines(plural(r.n, 'patent'), `expiring in ${r.year}`),
+  });
+  attachData('#expiry-chart', 'patent-expiry', ['Year', 'Patents expiring'], rows.map((r) => [r.year, r.n]));
+  dotplot({
+    mount: $('#exclusivity-chart'),
+    rows: o.exclusivity.map((e) => ({ key: e.code, label: exclusivityLabel(e.code), value: e.n })),
+    labelShare: 0.5,
+    labelMax: 320,
+    aria: 'Applications holding each kind of exclusivity',
+    describe: (row) => tipLines(plural(o.exclusivity.find((e) => e.code === row.key).n, 'application'), exclusivityLabel(row.key)),
+  });
+  attachData('#exclusivity-chart', 'exclusivity', ['Code', 'Exclusivity', 'Applications'], o.exclusivity.map((e) => [e.code, exclusivityLabel(e.code), e.n]));
+};
+
+const renderBiosimilars = () => {
+  const B = snapshot.biosimilars;
+  const y = biosimilarYears(snapshot);
+  const refs = biosimilarReferences(snapshot);
+  const first = [...B.rows].sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+  const lastFull = new Date(snapshot.generated).getUTCFullYear() - 1;
+  const inLast = y.counts[y.years.indexOf(lastFull)] ?? 0;
+  const max = Math.max(...y.counts);
+  const peaks = y.years.filter((_, i) => y.counts[i] === max);
+  const most = inLast === max ? `, ${peaks.length > 1 ? `as many as in ${andList(peaks.filter((p) => p !== lastFull).map(String))} and` : ''} the most in any year` : `; the most in one year was ${exact(max)}, in ${andList(peaks.map(String))}`;
+  $('#biosimilars-dek').textContent = `FDA approved its first biosimilar, ${first.name}, in ${first.date.slice(0, 4)}, and ${exact(inLast)} in ${lastFull}${most}. ${capital(refs[0].inn)} has ${exact(refs[0].n)} biosimilars and ${refs[1].inn} ${exact(refs[1].n)}; ${exact(refs.length)} molecules have at least one.`;
+  const rows = y.years.map((year, i) => ({ year, n: y.counts[i] }));
+  columns({
+    mount: $('#biosimilar-chart'),
+    rows,
+    key: (r) => r.year,
+    value: (r) => r.n,
+    aria: 'Biosimilars approved by FDA each year',
+    describe: (r) => {
+      const names = B.rows.filter((b) => String(b.date).startsWith(String(r.year))).map((b) => b.name.replace(/\s*\(.*$/, ''));
+      return tipLines(plural(r.n, 'biosimilar'), `approved in ${r.year}`, names.slice(0, 8).join(', ') + (names.length > 8 ? ', …' : ''));
+    },
+  });
+  attachData('#biosimilar-chart', 'biosimilars', ['Biosimilar', 'Approved', 'Reference product'], B.rows.map((b) => [b.name, b.date, b.reference]));
+  const shown = refs.slice(0, 15);
+  dotplot({
+    mount: $('#biosimilar-ref-chart'),
+    rows: shown.map((r) => ({ key: r.inn, label: r.inn, value: r.n })),
+    scale: 'linear',
+    labelShare: 0.45,
+    aria: 'Molecules with the most FDA-approved biosimilars',
+    describe: (row) => {
+      const r = refs.find((x) => x.inn === row.key);
+      return tipLines(plural(r.n, 'biosimilar'), r.inn, `copying ${r.products.join('; ')}`);
+    },
+  });
+  attachData('#biosimilar-ref-chart', 'biosimilars-by-molecule', ['Molecule', 'Biosimilars', 'Reference products'], refs.map((r) => [r.inn, r.n, r.products.join('; ')]));
+};
+
 const decode = () => {
   const value = $('#decoder-input').value;
   if (!value.trim()) {
@@ -1906,6 +2188,10 @@ const DATA_SOURCES = [
   ['openFDA drug shortages', FILES.fdaShortages],
   ['FDA table of nitrosamine acceptable intake limits', FILES.nitrosamineLimits],
   ['FDA Inactive Ingredient Database, newest quarterly file', FILES.iidPage],
+  ['FDA Drugs@FDA data files', FILES.drugsAtFda],
+  ['FDA Orange Book data files', FILES.orangeBook],
+  ['EMA medicines report', FILES.emaMedicines],
+  ['FDA biosimilar product information', FILES.biosimilars],
 ];
 
 const renderSources = () => {
@@ -1922,7 +2208,7 @@ const renderSources = () => {
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
     `. Cite as: Molecule/Medicine in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
-    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI, ClinicalTrials.gov, FDA and openFDA data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
+    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI, ClinicalTrials.gov, FDA, openFDA and EMA data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, EMA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
 };
 
@@ -2007,6 +2293,13 @@ const drawCharts = () => {
   renderShortages();
   renderExcipients();
   renderLimits();
+  renderNovel();
+  renderCalendar();
+  renderPaths();
+  renderEma();
+  renderGenerics();
+  renderPatents();
+  renderBiosimilars();
   applySearch();
 };
 
