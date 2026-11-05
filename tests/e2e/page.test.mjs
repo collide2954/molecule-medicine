@@ -700,7 +700,7 @@ test('the footer says AI helped and that a person reviewed the work', async () =
   const note = await page.textContent('#foot .made');
   assert.match(note, /^Made by a person, with help from AI tools\./);
   assert.match(note, /reviewed before publishing/);
-  assert.match(await page.textContent('#foot'), /Not an official FDA, NIH, EMBL-EBI or WHO site/);
+  assert.match(await page.textContent('#foot'), /Not an official FDA, EMA, NIH, EMBL-EBI or WHO site/);
   await page.close();
 });
 
