@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST,
 } from '../../src/facts.js';
 import { identify } from '../../src/lib.js';
 import snapshot from '../../src/snapshot.js';
@@ -43,6 +43,46 @@ test('the fixed genetic support table is cited and internally consistent', () =>
     assert.ok(r.launched <= r.supported, r.label);
   }
   assert.deepEqual(GENETIC_SUPPORT.areas.map((r) => r.rs), [...GENETIC_SUPPORT.areas.map((r) => r.rs)].sort((a, b) => b - a));
+});
+
+test('the trials part cites the registry, the studies of its reporting and the attrition and cost estimates', () => {
+  for (const key of ['ctgov', 'zarin2011']) assert.equal(SOURCE_TITLES[key]?.[0], 'Databases and classifications', key);
+  for (const key of ['wong2019', 'hay2014', 'wouters2020', 'dimasi2016', 'devito2020', 'anderson2015', 'deangelis2004']) assert.equal(SOURCE_TITLES[key]?.[0], 'Trials and development', key);
+});
+
+const POS_KEYS = ['p12', 'p23', 'p3a', 'p1a'];
+
+test('the fixed attrition table from Wong et al. 2019 is cited, complete and ordered', () => {
+  assert.equal(ATTRITION.source, 'wong2019');
+  assert.ok(SOURCES[ATTRITION.source]);
+  assert.equal(ATTRITION.groups.length, 9);
+  for (const g of [...ATTRITION.groups, ATTRITION.overall, ATTRITION.withoutOncology]) {
+    for (const k of POS_KEYS) assert.ok(g[k] > 0 && g[k] < 100, `${g.label} ${k}`);
+    assert.ok(g.p1a < g.p12 && g.p1a < g.p3a, g.label);
+    assert.ok(g.se > 0 && g.se < 3, g.label);
+    assert.ok(Number.isInteger(g.paths) && g.paths > 500, g.label);
+  }
+  assert.deepEqual(ATTRITION.groups.map((g) => g.p1a), [...ATTRITION.groups.map((g) => g.p1a)].sort((a, b) => b - a));
+  assert.equal(ATTRITION.groups.reduce((n, g) => n + g.paths, 0), ATTRITION.overall.paths);
+  assert.equal(ATTRITION.estimates.length, 7);
+  for (const e of ATTRITION.estimates) {
+    for (const k of POS_KEYS) assert.ok(e[k] > 0 && e[k] < 100, `${e.label} ${k}`);
+    assert.match(e.span, /^\d{4}–\d{4}$/, e.label);
+  }
+  assert.ok(ATTRITION.biomarker.with > ATTRITION.biomarker.without);
+  assert.ok(ATTRITION.orphan.oncology < ATTRITION.orphan.overall && ATTRITION.orphan.overall < ATTRITION.orphan.withoutOncology);
+});
+
+test('the fixed R&D cost estimates are cited and their medians sit inside their intervals', () => {
+  const w = RD_COST.wouters2020;
+  assert.ok(SOURCES.wouters2020 && SOURCES.dimasi2016);
+  assert.ok(w.medianLo < w.median && w.median < w.medianHi);
+  assert.ok(w.meanLo < w.mean && w.mean < w.meanHi);
+  assert.ok(w.withData < w.approvals);
+  assert.ok(w.nervous < w.median && w.median < w.antineoplastic);
+  const d = RD_COST.dimasi2016;
+  assert.ok(d.outOfPocket < d.capitalized && d.capitalized < d.withPostApproval);
+  assert.deepEqual([w.dollars, d.dollars], [2018, 2013]);
 });
 
 test('every decoder example is recognised, unique and described', () => {
