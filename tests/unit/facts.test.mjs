@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS,
 } from '../../src/facts.js';
 import { identify } from '../../src/lib.js';
 import snapshot from '../../src/snapshot.js';
@@ -83,6 +83,36 @@ test('the fixed R&D cost estimates are cited and their medians sit inside their 
   const d = RD_COST.dimasi2016;
   assert.ok(d.outOfPocket < d.capitalized && d.capitalized < d.withPostApproval);
   assert.deepEqual([w.dollars, d.dollars], [2018, 2013]);
+});
+
+test('the manufacturing part cites openFDA, FDA’s nitrosamine and excipient pages, ICH Q3C and Q3D and USP', () => {
+  for (const key of ['openfdaEnforcement', 'openfdaShortages', 'fdaNitrosamines', 'fdaNdsri', 'fdaIid', 'ichQ3c', 'ichQ3d', 'uspElemental']) assert.equal(SOURCE_TITLES[key]?.[0], 'Manufacturing and quality', key);
+});
+
+test('the fixed ICH Q3C solvent table is complete and its ppm limits follow from the PDEs at 10 g a day', () => {
+  assert.equal(SOLVENTS.source, 'ichQ3c');
+  assert.deepEqual(SOLVENTS.class1.map((s) => s.ppm), [2, 4, 5, 8, 1500]);
+  assert.equal(SOLVENTS.class2.length, 31);
+  for (const s of SOLVENTS.class2) {
+    assert.ok(s.pde > 0 && s.ppm > 0, s.name);
+    assert.equal(Math.round(s.pde * 100), s.ppm, s.name);
+  }
+  assert.equal(new Set(SOLVENTS.class2.map((s) => s.name)).size, 31);
+  assert.equal(SOLVENTS.class3.length, 27);
+  assert.equal(SOLVENTS.noData.length, 10);
+  assert.equal(SOLVENTS.class3Pde, 50);
+});
+
+test('the fixed ICH Q3D table gives oral, parenteral and inhalation PDEs for 24 elements in four classes', () => {
+  assert.equal(ELEMENTS.source, 'ichQ3d');
+  assert.equal(ELEMENTS.rows.length, 24);
+  assert.deepEqual(ELEMENTS.rows.filter((r) => r.cls === '1').map((r) => r.el), ['Cd', 'Pb', 'As', 'Hg']);
+  assert.deepEqual([...new Set(ELEMENTS.rows.map((r) => r.cls))], ['1', '2A', '2B', '3']);
+  for (const r of ELEMENTS.rows) {
+    for (const route of ['oral', 'parenteral', 'inhalation']) assert.ok(r[route] > 0, `${r.el} ${route}`);
+    assert.ok(r.parenteral <= r.oral, r.el);
+  }
+  assert.equal(ELEMENTS.unset.length, 10);
 });
 
 test('every decoder example is recognised, unique and described', () => {
