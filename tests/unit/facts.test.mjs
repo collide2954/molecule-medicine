@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS, LAWS,
 } from '../../src/facts.js';
 import { identify } from '../../src/lib.js';
 import snapshot from '../../src/snapshot.js';
@@ -113,6 +113,21 @@ test('the fixed ICH Q3D table gives oral, parenteral and inhalation PDEs for 24 
     assert.ok(r.parenteral <= r.oral, r.el);
   }
   assert.equal(ELEMENTS.unset.length, 10);
+});
+
+test('the approvals part cites Drugs@FDA, the Orange Book, EMA, FDA’s biosimilar list and FDA’s history of the laws', () => {
+  for (const key of ['drugsAtFdaFiles', 'orangeBookFiles', 'emaData', 'fdaBiosimilars']) assert.equal(SOURCE_TITLES[key]?.[0], 'Regulation', key);
+  assert.equal(SOURCE_TITLES.fdaMilestones?.[0], 'History');
+});
+
+test('the laws marked on the approval charts are dated, named and cited', () => {
+  assert.ok(LAWS.length >= 5);
+  assert.deepEqual(LAWS.map((l) => l.year), [...LAWS.map((l) => l.year)].sort((a, b) => a - b));
+  for (const l of LAWS) {
+    assert.ok(Number.isInteger(l.year) && l.year > 1900, l.name);
+    assert.ok(l.name.length > 3 && l.what.length > 10, l.name);
+    assert.ok(SOURCES[l.source], l.name);
+  }
 });
 
 test('every decoder example is recognised, unique and described', () => {
