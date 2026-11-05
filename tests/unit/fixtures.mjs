@@ -369,6 +369,94 @@ export const PART5 = {
   },
 };
 
+export const PART6 = {
+  recalls: {
+    updated: '2026-10-28',
+    total: 100,
+    events: 40,
+    years: [2012, 2013],
+    byClass: { I: [2, 3], II: [20, 30], III: [5, 6] },
+    reasons: [
+      {
+        key: 'sterility', n: 40, I: 2, II: 35, III: 3,
+      },
+      {
+        key: 'cgmp', n: 20, I: 0, II: 18, III: 2,
+      },
+      {
+        key: 'nitrosamine', n: 10, I: 0, II: 10, III: 0,
+      },
+      {
+        key: 'other', n: 30, I: 3, II: 25, III: 2,
+      },
+    ],
+    countries: [{ name: 'United States', n: 90 }, { name: 'India', n: 10 }],
+    firms: [{ name: 'Acme Compounding', n: 30, events: 2 }, { name: 'Beta', n: 10, events: 5 }],
+    mandated: 1,
+    lag: { median: 47, p90: 197 },
+  },
+  nitrosamines: {
+    recalls: {
+      total: 10,
+      byYear: { 2018: { sartans: 4 }, 2019: { sartans: 2, h2: 3 }, 2021: { other: 1 } },
+      drugs: [{
+        name: 'losartan', group: 'sartans', n: 6, first: 2018, last: 2019,
+      }, {
+        name: 'ranitidine', group: 'h2', n: 3, first: 2019, last: 2019,
+      }, {
+        name: 'duloxetine', group: 'other', n: 1, first: 2021, last: 2021,
+      }],
+    },
+    limits: [
+      {
+        name: 'N-nitroso-a', source: 'a', category: 1, limit: 26.5,
+      },
+      {
+        name: 'N-nitroso-b', source: 'a', category: 4, limit: 1500,
+      },
+      {
+        name: 'N-nitroso-c', source: 'c', category: 5, limit: 1500,
+      },
+    ],
+    surrogate: [{ name: 'N-nitroso-d', source: 'd', limit: 100 }],
+    interim: [{
+      name: 'N-nitroso-e', source: 'e', limit: 600, until: '2027-08-01',
+    }],
+  },
+  shortages: {
+    updated: '2026-11-04',
+    presentations: 6,
+    statuses: { Current: 4, 'To Be Discontinued': 1, Resolved: 1 },
+    drugs: [
+      {
+        name: 'A Injection', status: 'Current', categories: ['Anesthesia'], forms: ['Injection'], posted: '2012-01-01', companies: 2, presentations: 3,
+      },
+      {
+        name: 'B Tablet', status: 'Current', categories: ['Pediatric', 'Psychiatry'], forms: ['Tablet'], posted: '2023-05-01', companies: 1, presentations: 1,
+      },
+      {
+        name: 'C Injection', status: 'To Be Discontinued', categories: ['Cardiovascular'], forms: ['Injection'], posted: '2026-04-28', companies: 1, presentations: 1,
+      },
+      {
+        name: 'D Powder', status: 'Resolved', categories: ['Anti-Infective'], forms: ['Powder, For Suspension'], posted: '2022-10-01', companies: 1, presentations: 1,
+      },
+    ],
+  },
+  excipients: {
+    link: 'https://www.fda.gov/media/1/download',
+    rows: 10,
+    ingredients: 4,
+    withMde: 3,
+    routes: [{ route: 'ORAL', entries: 6, ingredients: 3 }, { route: 'TOPICAL', entries: 4, ingredients: 2 }],
+    top: [{
+      name: 'SODIUM HYDROXIDE', entries: 4, routes: 2, forms: 4,
+    }, {
+      name: 'LACTOSE', entries: 3, routes: 1, forms: 3,
+    }],
+    oralTablet: [{ name: 'LACTOSE', amount: 2500 }, { name: 'TALC', amount: 1000 }],
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
