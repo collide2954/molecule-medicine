@@ -4,7 +4,7 @@ import { chromium, devices } from 'playwright';
 import { start } from '../../scripts/serve.mjs';
 import snapshot from '../../src/snapshot.js';
 import {
-  EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION,
+  EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, SOLVENTS, ELEMENTS,
 } from '../../src/facts.js';
 import { exact } from '../../src/lib.js';
 import {
@@ -54,6 +54,7 @@ const CHAPTERS = {
   bioactivity: ['record', 'potency', 'efficiency', 'agreement', 'kinetics', 'theory', 'combinations'],
   pharmacokinetics: ['pk', 'simulator', 'ddi', 'cipa'],
   trials: ['registry', 'design', 'reporting', 'attrition', 'psychedelics'],
+  manufacturing: ['recalls', 'nitrosamines', 'shortages', 'excipients', 'limits'],
   reference: ['decoder', 'sources'],
 };
 
@@ -407,6 +408,44 @@ test('psychedelic and cannabinoid charts draw one line per compound', async () =
   const group = (g) => snapshot.psychoactive.compounds.filter((c) => c.group === g).length;
   assert.equal(await page.locator('#psychedelics-chart path.line').count(), group('psychedelics'));
   assert.equal(await page.locator('#cannabinoids-chart path.line').count(), group('cannabinoids'));
+  await page.close();
+});
+
+test('recall charts stack recalls by class, split causes by class and rank recalling firms', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#recall-chart path.area').count(), 3);
+  assert.equal(await page.locator('#recall-cause-chart [data-row]').count(), snapshot.recalls.reasons.length);
+  assert.equal(await page.locator('#recall-firm-chart [data-row]').count(), snapshot.recalls.firms.length);
+  await page.close();
+});
+
+test('nitrosamine charts stack recalls by drug and count FDA’s intake limits by potency category', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#nitro-recall-chart path.area').count(), 5);
+  assert.equal(await page.locator('#cpca-chart [data-row]').count(), 5);
+  assert.ok(await page.locator('#ndsri-source-chart [data-row]').count() >= 10);
+  await page.close();
+});
+
+test('shortage charts split therapeutic categories and date the shortages still current', async () => {
+  const { page } = await open();
+  assert.ok(await page.locator('#shortage-cat-chart [data-row]').count() >= 10);
+  assert.ok(await page.locator('#shortage-age-chart [data-year]').count() >= 5);
+  await page.close();
+});
+
+test('excipient charts rank routes and ingredients from the Inactive Ingredient Database', async () => {
+  const { page } = await open();
+  assert.ok(await page.locator('#route-chart [data-row]').count() >= 15);
+  assert.equal(await page.locator('#excipient-chart [data-row]').count(), 25);
+  await page.close();
+});
+
+test('impurity limit charts are marked fixed and lay out every solvent and element', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#solvent-chart [data-row]').count(), SOLVENTS.class1.length + SOLVENTS.class2.length);
+  assert.equal(await page.locator('#element-chart [data-cell]').count(), ELEMENTS.rows.length * 3);
+  assert.match(await page.textContent('#limits figcaption'), /Fixed table/);
   await page.close();
 });
 
