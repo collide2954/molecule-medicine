@@ -23,6 +23,8 @@ export const CTGOV = 'https://clinicaltrials.gov/api/v2/';
 
 export const CT_FIELDS = ['Phase', 'OverallStatus', 'StudyType', 'LeadSponsorClass', 'HasResults'];
 
+export const OPENFDA = 'https://api.fda.gov/';
+
 export const FILES = {
   chemblStatus: `${CHEMBL}status.json`,
   chemblApproved: `${CHEMBL}molecule.json?${new URLSearchParams({ max_phase: '4', limit: '1000', only: DRUG_FIELDS.join(',') })}`,
@@ -48,7 +50,13 @@ export const FILES = {
   ctSize: `${CTGOV}stats/size`,
   ctFields: `${CTGOV}stats/field/values?${new URLSearchParams({ fields: CT_FIELDS.join(',') })}`,
   ctStudies: `${CTGOV}studies`,
+  fdaEnforcement: `${OPENFDA}drug/enforcement.json`,
+  fdaShortages: `${OPENFDA}drug/shortages.json`,
+  nitrosamineLimits: 'https://www.fda.gov/regulatory-information/search-fda-guidance-documents/cder-nitrosamine-impurity-acceptable-intake-limits',
+  iidPage: 'https://www.fda.gov/drugs/drug-approvals-and-databases/inactive-ingredients-database-download',
 };
+
+export const openfdaPage = (url, skip, limit = 1000) => `${url}?${new URLSearchParams({ limit: String(limit), skip: String(skip) })}`;
 
 export const DRUG_TRIALS = 'AREA[StudyType]INTERVENTIONAL AND AREA[InterventionType](DRUG OR BIOLOGICAL)';
 
