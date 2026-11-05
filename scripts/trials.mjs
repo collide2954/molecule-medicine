@@ -34,10 +34,12 @@ const parse = (s) => {
   return Date.UTC(Number(y), Number(m) - 1, d ? Number(d) : 15);
 };
 
-export const monthsBetween = (a, b) => Math.round((parse(b) - parse(a)) / DAY / 30.4375);
+const span = (a, b) => (parse(b) - parse(a)) / DAY / 30.4375;
+
+export const monthsBetween = (a, b) => Math.round(span(a, b));
 
 export const reportingTimes = (rows, asOf) => rows.filter((r) => r.completion).map((r) => ({
-  months: r.submitted ? Math.max(0, monthsBetween(r.completion, r.submitted)) : monthsBetween(r.completion, asOf),
+  months: r.submitted ? Math.max(0, Math.ceil(span(r.completion, r.submitted))) : Math.floor(span(r.completion, asOf)),
   event: Boolean(r.submitted),
   sponsor: r.sponsor,
   certified: r.certified,
