@@ -315,6 +315,60 @@ export const PART4 = {
   },
 };
 
+const PHASE_KEYS = ['early1', 'p1', 'p12', 'p2', 'p23', 'p3', 'p4', 'na'];
+const noPhases = Object.fromEntries(PHASE_KEYS.map((k) => [k, 0]));
+
+export const PART5 = {
+  trials: {
+    total: 1000,
+    drug: 400,
+    fields: {
+      OverallStatus: { missing: 0, values: [{ value: 'COMPLETED', n: 600 }, { value: 'RECRUITING', n: 250 }, { value: 'UNKNOWN', n: 150 }] },
+      HasResults: { missing: 0, values: [{ value: 'false', n: 900 }, { value: 'true', n: 100 }] },
+      StudyType: { missing: 0, values: [{ value: 'INTERVENTIONAL', n: 800 }, { value: 'OBSERVATIONAL', n: 200 }] },
+    },
+    years: [2014, 2015],
+    registered: PHASE_KEYS.map((key, i) => ({ key, before: i, years: [10 + i, 20 + i] })),
+    design: PHASE_KEYS.map((key) => ({
+      key, total: 100, completed: 50, features: [80, 50, 30, 40, 10, 60, 45, 8, 2, 25],
+    })),
+    enrollment: PHASE_KEYS.map((key) => ({ key, bins: [40, 30, 20, 10, 0, 0] })),
+  },
+  reporting: {
+    from: '2018-01-01',
+    to: '2021-12-31',
+    asOf: '2026-11-05',
+    n: 10,
+    groups: [
+      {
+        key: 'industry', n: 4, events: [[6, 1], [12, 1], [20, 1]], censored: [[60, 1]],
+      },
+      {
+        key: 'federal', n: 2, events: [[11, 1]], censored: [[70, 1]],
+      },
+      {
+        key: 'other', n: 2, events: [[30, 1]], censored: [[65, 1]],
+      },
+      {
+        key: 'certified', n: 2, events: [[40, 1], [50, 1]], censored: [], sponsors: { industry: 2, federal: 0, other: 0 },
+      },
+    ],
+  },
+  psychoactive: {
+    compounds: [
+      {
+        key: 'psilocybin', label: 'psilocybin', group: 'psychedelics', trials: 30, years: { 2005: 1, 2014: 2, 2015: 20 }, phases: { ...noPhases, p2: 20, p3: 2 },
+      },
+      {
+        key: 'mdma', label: 'MDMA', group: 'psychedelics', trials: 5, years: { 2005: 2, 2015: 3 }, phases: { ...noPhases, p2: 4, p3: 1 },
+      },
+      {
+        key: 'cbd', label: 'cannabidiol', group: 'cannabinoids', trials: 7, years: { 2014: 3, 2015: 4 }, phases: { ...noPhases, p3: 7 },
+      },
+    ],
+  },
+};
+
 const pad = (s, n) => String(s).padEnd(n, ' ').slice(0, n);
 
 export const ibm = (x) => {
