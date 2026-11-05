@@ -58,6 +58,14 @@ export const SOURCES = {
   anderson2015: 'https://doi.org/10.1056/NEJMsa1409364',
   deangelis2004: 'https://doi.org/10.1056/NEJMe048225',
   cfr42part11: 'https://www.ecfr.gov/current/title-42/chapter-I/subchapter-A/part-11',
+  openfdaEnforcement: 'https://open.fda.gov/apis/drug/enforcement/',
+  openfdaShortages: 'https://open.fda.gov/apis/drug/drugshortages/',
+  fdaNitrosamines: 'https://www.fda.gov/regulatory-information/search-fda-guidance-documents/cder-nitrosamine-impurity-acceptable-intake-limits',
+  fdaNdsri: 'https://www.fda.gov/regulatory-information/search-fda-guidance-documents/recommended-acceptable-intake-limits-nitrosamine-drug-substance-related-impurities',
+  fdaIid: 'https://www.fda.gov/drugs/drug-approvals-and-databases/inactive-ingredients-database-download',
+  ichQ3c: 'https://database.ich.org/sites/default/files/ICH_Q3C-R8_Guideline_Step4_2021_0422_1.pdf',
+  ichQ3d: 'https://database.ich.org/sites/default/files/Q3D-R2_Guideline_Step4_2022_0308.pdf',
+  uspElemental: 'https://www.usp.org/impurities/elemental-impurities-updates',
 };
 
 export const SOURCE_TITLES = {
@@ -115,6 +123,14 @@ export const SOURCE_TITLES = {
   anderson2015: ['Trials and development', 'Anderson et al. 2015, Compliance with results reporting at ClinicalTrials.gov, New England Journal of Medicine 372:1031'],
   deangelis2004: ['Trials and development', 'De Angelis et al. 2004, Clinical trial registration: a statement from the International Committee of Medical Journal Editors, New England Journal of Medicine 351:1250'],
   cfr42part11: ['Regulation', '42 CFR Part 11, Clinical trials registration and results information submission'],
+  openfdaEnforcement: ['Manufacturing and quality', 'openFDA, drug recall enforcement reports'],
+  openfdaShortages: ['Manufacturing and quality', 'openFDA, FDA drug shortages'],
+  fdaNitrosamines: ['Manufacturing and quality', 'FDA, CDER nitrosamine impurity acceptable intake limits'],
+  fdaNdsri: ['Manufacturing and quality', 'FDA guidance, Recommended acceptable intake limits for nitrosamine drug substance-related impurities'],
+  fdaIid: ['Manufacturing and quality', 'FDA, Inactive Ingredient Database'],
+  ichQ3c: ['Manufacturing and quality', 'ICH Q3C(R8), Impurities: guideline for residual solvents, 2021'],
+  ichQ3d: ['Manufacturing and quality', 'ICH Q3D(R2), Guideline for elemental impurities, 2022'],
+  uspElemental: ['Manufacturing and quality', 'USP, Elemental impurities updates, general chapters <232> and <233>'],
 };
 
 export const GENETIC_SUPPORT = {
@@ -216,6 +232,93 @@ export const RD_COST = {
   dimasi2016: {
     drugs: 106, firms: 10, dollars: 2013, outOfPocket: 1395, capitalized: 2558, withPostApproval: 2870, growth: 8.5,
   },
+};
+
+const solvent = (name, pde, ppm) => ({ name, pde, ppm });
+
+export const SOLVENTS = {
+  source: 'ichQ3c',
+  class1: [
+    { name: 'benzene', ppm: 2, concern: 'carcinogen' },
+    { name: 'carbon tetrachloride', ppm: 4, concern: 'toxic and environmental hazard' },
+    { name: '1,2-dichloroethane', ppm: 5, concern: 'toxic' },
+    { name: '1,1-dichloroethene', ppm: 8, concern: 'toxic' },
+    { name: '1,1,1-trichloroethane', ppm: 1500, concern: 'environmental hazard' },
+  ],
+  class2: [
+    solvent('acetonitrile', 4.1, 410),
+    solvent('chlorobenzene', 3.6, 360),
+    solvent('chloroform', 0.6, 60),
+    solvent('cumene', 0.7, 70),
+    solvent('cyclohexane', 38.8, 3880),
+    solvent('cyclopentyl methyl ether', 15, 1500),
+    solvent('1,2-dichloroethene', 18.7, 1870),
+    solvent('dichloromethane', 6, 600),
+    solvent('1,2-dimethoxyethane', 1, 100),
+    solvent('N,N-dimethylacetamide', 10.9, 1090),
+    solvent('N,N-dimethylformamide', 8.8, 880),
+    solvent('1,4-dioxane', 3.8, 380),
+    solvent('2-ethoxyethanol', 1.6, 160),
+    solvent('ethyleneglycol', 6.2, 620),
+    solvent('formamide', 2.2, 220),
+    solvent('hexane', 2.9, 290),
+    solvent('methanol', 30, 3000),
+    solvent('2-methoxyethanol', 0.5, 50),
+    solvent('methylbutyl ketone', 0.5, 50),
+    solvent('methylcyclohexane', 11.8, 1180),
+    solvent('methylisobutylketone', 45, 4500),
+    solvent('N-methylpyrrolidone', 5.3, 530),
+    solvent('nitromethane', 0.5, 50),
+    solvent('pyridine', 2, 200),
+    solvent('sulfolane', 1.6, 160),
+    solvent('tertiary-butyl alcohol', 35, 3500),
+    solvent('tetrahydrofuran', 7.2, 720),
+    solvent('tetralin', 1, 100),
+    solvent('toluene', 8.9, 890),
+    solvent('1,1,2-trichloroethene', 0.8, 80),
+    solvent('xylene', 21.7, 2170),
+  ],
+  class3: [
+    'acetic acid', 'acetone', 'anisole', '1-butanol', '2-butanol', 'butyl acetate', 'tert-butylmethyl ether', 'dimethyl sulfoxide', 'ethanol', 'ethyl acetate', 'ethyl ether', 'ethyl formate', 'formic acid', 'heptane',
+    'isobutyl acetate', 'isopropyl acetate', 'methyl acetate', '3-methyl-1-butanol', 'methylethyl ketone', '2-methyl-1-propanol', '2-methyltetrahydrofuran', 'pentane', '1-pentanol', '1-propanol', '2-propanol', 'propyl acetate', 'triethylamine',
+  ],
+  noData: ['1,1-diethoxypropane', '1,1-dimethoxymethane', '2,2-dimethoxypropane', 'isooctane', 'isopropyl ether', 'methylisopropyl ketone', 'methyltetrahydrofuran', 'petroleum ether', 'trichloroacetic acid', 'trifluoroacetic acid'],
+  class3Pde: 50,
+};
+
+const element = (el, name, cls, oral, parenteral, inhalation) => ({
+  el, name, cls, oral, parenteral, inhalation,
+});
+
+export const ELEMENTS = {
+  source: 'ichQ3d',
+  rows: [
+    element('Cd', 'cadmium', '1', 5, 2, 3),
+    element('Pb', 'lead', '1', 5, 5, 5),
+    element('As', 'arsenic', '1', 15, 15, 2),
+    element('Hg', 'mercury', '1', 30, 3, 1),
+    element('Co', 'cobalt', '2A', 50, 5, 3),
+    element('V', 'vanadium', '2A', 100, 10, 1),
+    element('Ni', 'nickel', '2A', 200, 20, 6),
+    element('Tl', 'thallium', '2B', 8, 8, 8),
+    element('Au', 'gold', '2B', 300, 300, 3),
+    element('Pd', 'palladium', '2B', 100, 10, 1),
+    element('Ir', 'iridium', '2B', 100, 10, 1),
+    element('Os', 'osmium', '2B', 100, 10, 1),
+    element('Rh', 'rhodium', '2B', 100, 10, 1),
+    element('Ru', 'ruthenium', '2B', 100, 10, 1),
+    element('Se', 'selenium', '2B', 150, 80, 130),
+    element('Ag', 'silver', '2B', 150, 15, 7),
+    element('Pt', 'platinum', '2B', 100, 10, 1),
+    element('Li', 'lithium', '3', 550, 250, 25),
+    element('Sb', 'antimony', '3', 1200, 90, 20),
+    element('Ba', 'barium', '3', 1400, 700, 300),
+    element('Mo', 'molybdenum', '3', 3000, 1500, 10),
+    element('Cu', 'copper', '3', 3000, 300, 30),
+    element('Sn', 'tin', '3', 6000, 600, 60),
+    element('Cr', 'chromium', '3', 11000, 1100, 3),
+  ],
+  unset: ['Al', 'B', 'Ca', 'Fe', 'K', 'Mg', 'Mn', 'Na', 'W', 'Zn'],
 };
 
 export const LANDMARKS = [
