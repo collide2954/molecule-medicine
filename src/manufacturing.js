@@ -10,7 +10,7 @@ export const RECALL_LABELS = {
   impurity: 'other impurities',
   particulate: 'particulates and precipitates',
   cross: 'cross-contamination',
-  unapproved: 'unapproved or tainted',
+  unapproved: 'unapproved or tainted products',
   nitrosamine: 'nitrosamines',
   dissolution: 'dissolution',
   container: 'container and delivery',
@@ -51,9 +51,11 @@ export const potencyCategories = (snap) => Object.entries(CPCA).map(([category, 
   category: Number(category), limit, n: snap.nitrosamines.limits.filter((l) => l.category === Number(category)).length,
 }));
 
+const SEVERAL = /^multiple\b/i;
+
 export const ndsriSources = (snap, top = 15) => {
   const m = new Map();
-  for (const l of snap.nitrosamines.limits) m.set(l.source, (m.get(l.source) ?? 0) + 1);
+  for (const l of snap.nitrosamines.limits.filter((x) => !SEVERAL.test(x.source))) m.set(l.source, (m.get(l.source) ?? 0) + 1);
   return [...m].map(([source, n]) => ({ source, n })).sort((a, b) => b.n - a.n || a.source.localeCompare(b.source)).slice(0, top);
 };
 
