@@ -436,7 +436,7 @@ test('shortage charts split therapeutic categories and date the shortages still 
 
 test('excipient charts rank routes and ingredients from the Inactive Ingredient Database', async () => {
   const { page } = await open();
-  assert.ok(await page.locator('#route-chart [data-row]').count() >= 15);
+  assert.ok(await page.locator('#iid-route-chart [data-row]').count() >= 15);
   assert.equal(await page.locator('#excipient-chart [data-row]').count(), 25);
   await page.close();
 });
@@ -444,7 +444,7 @@ test('excipient charts rank routes and ingredients from the Inactive Ingredient 
 test('impurity limit charts are marked fixed and lay out every solvent and element', async () => {
   const { page } = await open();
   assert.equal(await page.locator('#solvent-chart [data-row]').count(), SOLVENTS.class1.length + SOLVENTS.class2.length);
-  assert.equal(await page.locator('#element-chart [data-cell]').count(), ELEMENTS.rows.length * 3);
+  assert.equal(await page.locator('#pde-chart [data-cell]').count(), ELEMENTS.rows.length * 3);
   assert.match(await page.textContent('#limits figcaption'), /Fixed table/);
   await page.close();
 });

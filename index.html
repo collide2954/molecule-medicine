@@ -641,8 +641,90 @@
     </figure>
   </section>
 
-  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+  <div class="chapter wrap" id="ch-manufacturing" data-chapter="manufacturing">
     <p class="chapter-no">Part 6</p>
+    <h2 class="chapter-title">Manufacturing</h2>
+    <p class="chapter-dek">How drugs are made and how making them goes wrong: the products FDA’s recalls pull and why, the nitrosamine impurities found since 2018, the drugs on FDA’s shortage list, the inactive ingredients FDA has accepted, and the international limits on residual solvents and metals.</p>
+  </div>
+
+  <section class="story wrap" id="recalls" data-lens="clinical safety" data-nav="Recalls">
+    <header class="head"><p class="label">Drug recalls</p><h2 data-finding="recalls">Drug recalls</h2><p class="dek" id="recalls-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="recall-chart"></div>
+      <figcaption>Recalled drug products each year by FDA class: class I where use could cause serious harm or death, class II where harm would be temporary or reversible, class III where harm is unlikely. Each product in a recall counts once, in the year FDA’s enforcement report listed it. Source: openFDA drug recall enforcement reports.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="recall-cause-chart"></div>
+        <figcaption>Recalled products by cause, read from the reason FDA records, split by class. Source: openFDA.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="recall-firm-chart"></div>
+        <figcaption>The ten firms with the most recalled products. Source: openFDA.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="nitrosamines" data-lens="safety" data-nav="Nitrosamines">
+    <header class="head"><p class="label">Nitrosamine impurities</p><h2 data-finding="nitrosamines">Nitrosamine impurities</h2><p class="dek" id="nitrosamines-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="nitro-recall-chart"></div>
+      <figcaption>Recalled drug products whose reason names a nitrosamine, such as NDMA, NDEA or NMBA, or a nitrosamine of the drug itself, each year by drug. Source: openFDA.</figcaption>
+    </figure>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="cpca-chart"></div>
+        <figcaption>Drug-specific nitrosamines with an FDA acceptable intake, by the potency category FDA’s carcinogenic potency categorization approach assigns, with the intake each category allows. Source: FDA, CDER nitrosamine impurity acceptable intake limits.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="ndsri-source-chart"></div>
+        <figcaption>The drugs with the most nitrosamine impurities in FDA’s table. Source: FDA.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="shortages" data-lens="clinical" data-nav="Shortages">
+    <header class="head"><p class="label">Drug shortages</p><h2 data-finding="shortages">Drug shortages</h2><p class="dek" id="shortages-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="shortage-cat-chart"></div>
+        <figcaption>Drugs on FDA’s shortage list by therapeutic category, in current shortage or to be discontinued; a drug in two categories counts in both. Source: openFDA, FDA drug shortages.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="shortage-age-chart"></div>
+        <figcaption>Drugs in current shortage by the year FDA first posted the shortage. Source: openFDA.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="excipients" data-lens="basic clinical" data-nav="Excipients">
+    <header class="head"><p class="label">Inactive ingredients</p><h2 data-finding="excipients">Inactive ingredients</h2><p class="dek" id="excipients-dek"></p></header>
+    <div class="pair">
+      <figure class="fig">
+        <div class="chart" id="iid-route-chart"></div>
+        <figcaption>Entries in FDA’s Inactive Ingredient Database by route, log scale: each entry is the most of one ingredient FDA has accepted in one dosage form for that route in an approved drug. Source: FDA Inactive Ingredient Database.</figcaption>
+      </figure>
+      <figure class="fig">
+        <div class="chart" id="excipient-chart"></div>
+        <figcaption>The 25 inactive ingredients with the most route and dosage form entries. Source: FDA Inactive Ingredient Database.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="story wrap" id="limits" data-lens="safety" data-nav="Impurity limits">
+    <header class="head"><p class="label">Solvent and metal limits</p><h2 data-finding="limits">Solvent and metal limits</h2><p class="dek" id="limits-dek"></p></header>
+    <figure class="fig">
+      <div class="chart" id="solvent-chart"></div>
+      <figcaption>Concentration limits in a drug product for the class 1 solvents to be avoided, highlighted, and the class 2 solvents to be limited, in ppm, log scale, under option 1, which assumes 10 g of product a day. Fixed table, from ICH Q3C(R8), tables 1 and 2; not refreshed weekly.</figcaption>
+    </figure>
+    <figure class="fig">
+      <div class="chart" id="pde-chart"></div>
+      <figcaption>Permitted daily exposure to each elemental impurity by route, in µg a day, darker where the limit is lower, log scale. Class 1 and 2A elements must be assessed in every product. Fixed table, from ICH Q3D(R2), table A.2.1; USP is revising chapter &lt;232&gt; to align with it.</figcaption>
+    </figure>
+  </section>
+
+  <div class="chapter wrap" id="ch-reference" data-chapter="reference">
+    <p class="chapter-no">Part 7</p>
     <h2 class="chapter-title">Reference</h2>
     <p class="chapter-dek">How to read the identifiers on this page, and where every number comes from.</p>
   </div>

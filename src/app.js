@@ -1,6 +1,6 @@
 import snapshot from './snapshot.js';
 import {
-  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST,
+  SOURCES, SOURCE_TITLES, SOURCE_GROUPS, EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION, RD_COST, SOLVENTS, ELEMENTS as METALS,
 } from './facts.js';
 import {
   exact, compact, pct, daltons, identify, matches, LENSES, readLens, inLens, lensSearch, toCsv, longDate, soften, decimal, partition, molar, pToMolar, clipLine, pow10, seconds, duration,
@@ -31,6 +31,9 @@ import {
 import {
   registrations, designShares, enrollmentShares, statusRows, reportingCurves, psychoactiveSeries, attritionForest,
 } from './trials.js';
+import {
+  recallSeries, recallCauses, nitrosamineSeries, potencyCategories, ndsriSources, shortageView, elementGrid, CPCA,
+} from './manufacturing.js';
 import {
   hbars, dotplot, stackedArea, waffle, columns, histo, lines, treemap, hexmap, boxes, molgrid, observeFigures, countUp, tipLines, icicle, grid, kinomeMap, network, forest, scatter, rampLegend, curves, heatmap, html,
 } from './charts.js';
@@ -1630,6 +1633,215 @@ const renderPsychedelics = () => {
   drawCompounds('#cannabinoids-chart', 'cannabinoid-trials', can, 'Cannabinoid trials by start year');
 };
 
+const CLASS_COLORS = { I: 'var(--s1)', II: 'var(--s3)', III: 'var(--data)' };
+const CLASS_SEGMENTS = ['I', 'II', 'III'].map((c) => ({ key: c, label: `Class ${c}`, color: CLASS_COLORS[c] }));
+
+const renderRecalls = () => {
+  const R = snapshot.recalls;
+  const s = recallSeries(snapshot);
+  const causes = recallCauses(snapshot);
+  const severe = [...causes].sort((a, b) => b.I - a.I);
+  const classI = causes.reduce((n, c) => n + c.I, 0);
+  const us = R.countries.find((c) => c.name === 'United States')?.n ?? 0;
+  const top = R.firms[0];
+  $('#recalls-dek').textContent = `${pct(classI / R.total)} of the ${exact(R.total)} drug products recalled since ${R.years[0]}, in ${exact(R.events)} recalls, were class I, the most serious. ${capital(causes[0].label)} led the causes, at ${pct(causes[0].share)}, then ${causes[1].label}, ${pct(causes[1].share)}, and ${causes[2].label}, ${pct(causes[2].share)}. Class I recalls were most often for ${severe[0].label}, ${exact(severe[0].I)}, and ${severe[1].label}, ${exact(severe[1].I)}. FDA mandated ${exact(R.mandated)} recalls and firms began the rest. ${pct(us / R.total)} of recalled products came from firms in the United States, then ${andList(R.countries.slice(1, 4).map((c) => c.name))}. ${top.name} recalled the most products, ${exact(top.n)} in ${plural(top.events, 'recall')}. Half of the recalled products reached FDA’s weekly enforcement report within ${R.lag.median} days of the recall starting.`;
+  stackedArea({
+    mount: $('#recall-chart'),
+    years: s.years,
+    series: s.series.map((x) => ({
+      key: x.key, label: x.label, color: CLASS_COLORS[x.key], values: x.values,
+    })),
+    aria: 'Recalled drug products each year by class',
+  });
+  attachData('#recall-chart', 'drug-recalls', ['Year', ...s.series.map((x) => x.label)], s.years.map((y, i) => [y, ...s.series.map((x) => x.values[i])]));
+  hbars({
+    mount: $('#recall-cause-chart'),
+    rows: causes.map((c) => ({ key: c.key, label: c.label, values: { I: c.I, II: c.II, III: c.III } })),
+    segments: CLASS_SEGMENTS,
+    labelShare: 0.4,
+    aria: 'Recalled drug products by cause and class',
+    describe: (r) => {
+      const c = causes.find((x) => x.key === r.key);
+      return tipLines(plural(c.n, 'product'), c.label, `${pct(c.share)} of recalls; class I ${exact(c.I)}, II ${exact(c.II)}, III ${exact(c.III)}`);
+    },
+  });
+  attachData('#recall-cause-chart', 'recall-causes', ['Cause', 'Products', 'Class I', 'Class II', 'Class III'], causes.map((c) => [c.label, c.n, c.I, c.II, c.III]));
+  dotplot({
+    mount: $('#recall-firm-chart'),
+    rows: R.firms.map((f) => ({ key: f.name, label: f.name, value: f.n })),
+    scale: 'linear',
+    labelShare: 0.55,
+    labelMax: 300,
+    aria: 'The firms with the most recalled drug products',
+    describe: (row) => {
+      const f = R.firms.find((x) => x.name === row.key);
+      return tipLines(plural(f.n, 'product'), f.name, plural(f.events, 'recall'));
+    },
+  });
+  attachData('#recall-firm-chart', 'recalling-firms', ['Firm', 'Products', 'Recalls'], R.firms.map((f) => [f.name, f.n, f.events]));
+};
+
+const NITRO_COLORS = {
+  sartans: 'var(--s2)', h2: 'var(--s4)', metformin: 'var(--s3)', varenicline: 'var(--s5)', other: 'var(--s1)',
+};
+
+const numberWord = (n) => (['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'][n] ?? exact(n));
+
+const nanograms = (v) => (Number.isInteger(v) ? exact(v) : String(v));
+
+const andList = (items) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`);
+
+const renderNitrosamines = () => {
+  const N = snapshot.nitrosamines;
+  const last = snapshot.recalls.years.at(-1);
+  const s = nitrosamineSeries(snapshot, last);
+  const span = (key) => {
+    const years = Object.entries(N.recalls.byYear).filter(([, g]) => g[key]).map(([y]) => Number(y));
+    const n = Object.values(N.recalls.byYear).reduce((t, g) => t + (g[key] ?? 0), 0);
+    return { n, first: Math.min(...years), last: Math.max(...years) };
+  };
+  const years = (x) => (x.first === x.last ? `in ${x.first}` : `in ${x.first} to ${x.last}`);
+  const [sar, h2, met, vare] = ['sartans', 'h2', 'metformin', 'varenicline'].map(span);
+  const others = N.recalls.drugs.filter((d) => d.group === 'other').slice(0, 3).map((d) => d.name);
+  const cats = potencyCategories(snapshot);
+  const loosest = [...N.interim].sort((a, b) => b.limit - a.limit)[0];
+  $('#nitrosamines-dek').textContent = `The recalls came in waves: sartans, ${exact(sar.n)} products ${years(sar)}; ranitidine and nizatidine, ${exact(h2.n)} ${years(h2)}; metformin, ${exact(met.n)} ${years(met)}; and varenicline, ${exact(vare.n)} ${years(vare)}. Since then most have been other drugs, led by ${andList(others)}, for nitrosamines that carry the drug’s own structure. FDA’s table puts ${exact(cats[0].n)} of its ${exact(N.limits.length)} drug-specific nitrosamines in category 1, ${CPCA[1]} ng a day, and ${exact(cats[3].n + cats[4].n)} in categories 4 and 5, ${exact(CPCA[4])} ng. ${capital(numberWord(N.interim.length))} more have interim limits until ${day(loosest.until)}, up to ${exact(loosest.limit)} ng a day for ${loosest.source}.`;
+  stackedArea({
+    mount: $('#nitro-recall-chart'),
+    years: s.years,
+    series: s.series.map((x) => ({
+      key: x.key, label: x.label, color: NITRO_COLORS[x.key], values: x.values,
+    })),
+    aria: 'Nitrosamine recalls each year by drug',
+  });
+  attachData('#nitro-recall-chart', 'nitrosamine-recalls', ['Year', ...s.series.map((x) => x.label)], s.years.map((y, i) => [y, ...s.series.map((x) => x.values[i])]));
+  dotplot({
+    mount: $('#cpca-chart'),
+    rows: cats.map((c) => ({ key: `c${c.category}`, label: `category ${c.category}, ${nanograms(c.limit)} ng a day`, value: c.n })),
+    scale: 'linear',
+    labelShare: 0.5,
+    aria: 'Drug-specific nitrosamines by potency category',
+    describe: (row) => {
+      const c = cats.find((x) => `c${x.category}` === row.key);
+      return tipLines(plural(c.n, 'nitrosamine'), `potency category ${c.category}`, `acceptable intake ${nanograms(c.limit)} ng a day`);
+    },
+  });
+  attachData('#cpca-chart', 'nitrosamine-categories', ['Category', 'Acceptable intake ng per day', 'Nitrosamines'], cats.map((c) => [c.category, c.limit, c.n]));
+  const sources = ndsriSources(snapshot, 15);
+  dotplot({
+    mount: $('#ndsri-source-chart'),
+    rows: sources.map((x) => ({ key: x.source, label: x.source, value: x.n })),
+    scale: 'linear',
+    labelShare: 0.45,
+    aria: 'Drugs with the most nitrosamine impurities in FDA’s table',
+    describe: (row) => {
+      const list = N.limits.filter((l) => l.source === row.key);
+      return tipLines(plural(list.length, 'nitrosamine'), row.key, list.slice(0, 4).map((l) => `${l.name}, ${l.limit} ng`).join('; '));
+    },
+  });
+  attachData('#ndsri-source-chart', 'nitrosamine-limits', ['Nitrosamine', 'Source', 'Category', 'Acceptable intake ng per day'], N.limits.map((l) => [l.name, l.source, l.category, l.limit]));
+};
+
+const renderShortages = () => {
+  const v = shortageView(snapshot);
+  const byLeaving = [...v.categories].sort((a, b) => b.discontinuing - a.discontinuing);
+  const [a, b] = v.oldest;
+  $('#shortages-dek').textContent = `Of the ${exact(v.current)} drugs in current shortage, ${exact(v.injectable)} are injectable. ${capital(lower(a.name))} and ${lower(b.name)} have been on the list since ${day(a.posted)}, the oldest postings still current. ${exact(v.categories[0].current)} of the shortages are listed under ${lower(v.categories[0].name)} and ${exact(v.categories[1].current)} under ${lower(v.categories[1].name)}. FDA lists ${exact(v.discontinuing)} more drugs to be discontinued, ${exact(byLeaving[0].discontinuing)} of them ${lower(byLeaving[0].name)}.`;
+  hbars({
+    mount: $('#shortage-cat-chart'),
+    rows: v.categories.map((c) => ({ key: c.name, label: lower(c.name), values: { current: c.current, discontinuing: c.discontinuing } })),
+    segments: [{ key: 'current', label: 'Current shortage', color: 'var(--s1)' }, { key: 'discontinuing', label: 'To be discontinued', color: 'var(--data)' }],
+    labelShare: 0.42,
+    aria: 'Drugs on FDA’s shortage list by therapeutic category',
+    describe: (r) => {
+      const c = v.categories.find((x) => x.name === r.key);
+      return tipLines(plural(c.current, 'drug'), `in current shortage, ${lower(c.name)}`, `${exact(c.discontinuing)} to be discontinued`);
+    },
+  });
+  attachData('#shortage-cat-chart', 'shortage-categories', ['Category', 'Current shortage', 'To be discontinued'], v.categories.map((c) => [c.name, c.current, c.discontinuing]));
+  const years = Object.keys(v.posted).map(Number);
+  const rows = Array.from({ length: Math.max(...years) - Math.min(...years) + 1 }, (_, i) => Math.min(...years) + i).map((year) => ({ year, n: v.posted[year] ?? 0 }));
+  columns({
+    mount: $('#shortage-age-chart'),
+    rows,
+    key: (r) => r.year,
+    value: (r) => r.n,
+    aria: 'Drugs in current shortage by the year the shortage was first posted',
+    describe: (r) => tipLines(plural(r.n, 'drug'), `in current shortage, first posted in ${r.year}`),
+  });
+  attachData('#shortage-age-chart', 'shortages-by-year', ['Drug', 'Status', 'First posted', 'Categories', 'Forms', 'Presentations', 'Companies'], snapshot.shortages.drugs.map((d) => [d.name, d.status, d.posted, d.categories.join('; '), d.forms.join('; '), d.presentations, d.companies]));
+};
+
+const renderExcipients = () => {
+  const E = snapshot.excipients;
+  const [r1, r2] = E.routes;
+  const [t1, t2, t3] = E.top;
+  const [h1, h2] = E.oralTablet;
+  $('#excipients-dek').textContent = `For each inactive ingredient the database gives the most FDA has accepted per dose unit in each route and dosage form. ${capital(lower(r1.route))} use has ${exact(r1.entries)} entries for ${exact(r1.ingredients)} ingredients, and ${lower(r2.route)} ${exact(r2.entries)} for ${exact(r2.ingredients)}. ${capital(lower(t1.name))} has the most entries, ${exact(t1.entries)} across ${plural(t1.routes, 'route')}, then ${lower(t2.name)} and ${lower(t3.name)}. The largest amount accepted in an oral tablet is ${exact(h1.amount)} mg of ${lower(h1.name)}, then ${exact(h2.amount)} mg of ${lower(h2.name)}. ${exact(E.withMde)} entries also give a maximum daily exposure.`;
+  const routes = E.routes.slice(0, 20);
+  dotplot({
+    mount: $('#iid-route-chart'),
+    rows: routes.map((r) => ({ key: r.route, label: lower(r.route), value: r.entries })),
+    labelShare: 0.45,
+    aria: 'Inactive Ingredient Database entries by route',
+    describe: (row) => {
+      const r = E.routes.find((x) => x.route === row.key);
+      return tipLines(plural(r.entries, 'entry', 'entries'), lower(r.route), plural(r.ingredients, 'ingredient'));
+    },
+  });
+  attachData('#iid-route-chart', 'excipient-routes', ['Route', 'Entries', 'Ingredients'], E.routes.map((r) => [r.route, r.entries, r.ingredients]));
+  dotplot({
+    mount: $('#excipient-chart'),
+    rows: E.top.map((t) => ({ key: t.name, label: lower(t.name), value: t.entries })),
+    scale: 'linear',
+    labelShare: 0.5,
+    aria: 'Inactive ingredients with the most route and dosage form entries',
+    describe: (row) => {
+      const t = E.top.find((x) => x.name === row.key);
+      return tipLines(plural(t.entries, 'entry', 'entries'), lower(t.name), `${plural(t.routes, 'route')}, ${plural(t.forms, 'route and form', 'routes and forms')}`);
+    },
+  });
+  attachData('#excipient-chart', 'common-excipients', ['Ingredient', 'Entries', 'Routes', 'Route and form pairs'], E.top.map((t) => [t.name, t.entries, t.routes, t.forms]));
+};
+
+const renderLimits = () => {
+  const c2 = SOLVENTS.class2;
+  const lowest = Math.min(...c2.map((s) => s.pde));
+  const highest = c2.reduce((x, y) => (y.pde > x.pde ? y : x));
+  const tight = c2.filter((s) => s.pde === lowest).map((s) => s.name);
+  const g = elementGrid();
+  const cr = METALS.rows.find((r) => r.el === 'Cr');
+  const inhaledLowest = METALS.rows.filter((r) => r.inhalation < r.parenteral && r.inhalation < r.oral).length;
+  $('#limits-dek').textContent = `Class 1 solvents, carcinogens or environmental hazards such as benzene, are to be avoided. Class 2 solvents are held to a permitted daily exposure, from ${lowest} mg a day for ${andList(tight)} to ${highest.pde} mg for ${highest.name}; the ${exact(SOLVENTS.class3.length)} class 3 solvents may reach ${SOLVENTS.class3Pde} mg a day, and ${exact(SOLVENTS.noData.length)} more lack the data to set any limit. For ${exact(inhaledLowest)} of the ${exact(METALS.rows.length)} elements, inhalation has the lowest limit: chromium may reach ${exact(cr.oral)} µg a day by mouth but ${exact(cr.inhalation)} µg inhaled.`;
+  const solvents = [...SOLVENTS.class1.map((s) => ({ ...s, cls: 1 })), ...c2.map((s) => ({ ...s, cls: 2 }))].sort((a, b) => a.ppm - b.ppm || a.name.localeCompare(b.name));
+  dotplot({
+    mount: $('#solvent-chart'),
+    rows: solvents.map((s) => ({
+      key: s.name, label: s.name, value: s.ppm, hi: s.cls === 1,
+    })),
+    labelShare: 0.4,
+    format: (v) => `${exact(v)} ppm`,
+    aria: 'ICH Q3C concentration limits for class 1 and class 2 residual solvents',
+    describe: (row) => {
+      const s = solvents.find((x) => x.name === row.key);
+      return tipLines(`${exact(s.ppm)} ppm`, `${s.name}, class ${s.cls}`, s.cls === 1 ? s.concern : `PDE ${s.pde} mg a day`);
+    },
+  });
+  attachData('#solvent-chart', 'residual-solvents', ['Solvent', 'Class', 'PDE mg per day', 'Limit ppm'], solvents.map((s) => [s.name, s.cls, s.pde ?? null, s.ppm]));
+  grid({
+    mount: $('#pde-chart'),
+    rows: g.rows,
+    cols: g.routes,
+    values: g.values,
+    color: 'var(--s5)',
+    shade: (v) => heatShade(Math.max(0, 4.1 - Math.log10(v)), 4.1),
+    format: (v) => compact(v),
+    aria: 'ICH Q3D permitted daily exposures for elemental impurities by route',
+    describe: (i, j) => tipLines(`${exact(g.values[i][j])} µg a day`, `${g.rows[i]}, ${g.routes[j]}`, `class ${g.classes[i]}`),
+  });
+  attachData('#pde-chart', 'elemental-impurities', ['Element', 'Class', 'Oral PDE µg per day', 'Parenteral PDE µg per day', 'Inhalation PDE µg per day'], METALS.rows.map((r) => [`${r.el} ${r.name}`, r.cls, r.oral, r.parenteral, r.inhalation]));
+};
+
 const decode = () => {
   const value = $('#decoder-input').value;
   if (!value.trim()) {
@@ -1690,6 +1902,10 @@ const DATA_SOURCES = [
   ['ClinicalTrials.gov study count', FILES.ctSize],
   ['ClinicalTrials.gov field values across all studies', FILES.ctFields],
   ['ClinicalTrials.gov studies, counted and paged by query', FILES.ctStudies],
+  ['openFDA drug recall enforcement reports', FILES.fdaEnforcement],
+  ['openFDA drug shortages', FILES.fdaShortages],
+  ['FDA table of nitrosamine acceptable intake limits', FILES.nitrosamineLimits],
+  ['FDA Inactive Ingredient Database, newest quarterly file', FILES.iidPage],
 ];
 
 const renderSources = () => {
@@ -1706,7 +1922,7 @@ const renderSources = () => {
     '. The code and the weekly rebuild are on ', ext(REPO, 'GitHub'),
     `. Cite as: Basic & Clinical Pharmacology in Numbers, snapshot of ${when}. ${SITE}`);
   fill('#foot',
-    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI and ClinicalTrials.gov data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
+    h('p', {}, `Built from public ChEMBL, GtoPdb, PDB, GPCRdb, ClinVar, HGNC, NCI, ClinicalTrials.gov, FDA and openFDA data. Snapshot ${snapshot.generated.slice(0, 16).replace('T', ' ')} UTC. Not an official FDA, NIH, EMBL-EBI or WHO site.`),
     h('p', { class: 'made' }, 'Made by a person, with help from AI tools. Every line, chart and figure was reviewed before publishing; the numbers now refresh on their own each Sunday.'));
 };
 
@@ -1786,6 +2002,11 @@ const drawCharts = () => {
   renderReporting();
   renderAttrition();
   renderPsychedelics();
+  renderRecalls();
+  renderNitrosamines();
+  renderShortages();
+  renderExcipients();
+  renderLimits();
   applySearch();
 };
 
