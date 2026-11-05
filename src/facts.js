@@ -66,6 +66,11 @@ export const SOURCES = {
   ichQ3c: 'https://database.ich.org/sites/default/files/ICH_Q3C-R8_Guideline_Step4_2021_0422_1.pdf',
   ichQ3d: 'https://database.ich.org/sites/default/files/Q3D-R2_Guideline_Step4_2022_0308.pdf',
   uspElemental: 'https://www.usp.org/impurities/elemental-impurities-updates',
+  drugsAtFdaFiles: 'https://www.fda.gov/drugs/drug-approvals-and-databases/drugsfda-data-files',
+  orangeBookFiles: 'https://www.fda.gov/drugs/drug-approvals-and-databases/orange-book-data-files',
+  emaData: 'https://www.ema.europa.eu/en/medicines/download-medicine-data',
+  fdaBiosimilars: 'https://www.fda.gov/drugs/biosimilars/biosimilar-product-information',
+  fdaMilestones: 'https://www.fda.gov/about-fda/fda-history/milestones-us-food-and-drug-law',
 };
 
 export const SOURCE_TITLES = {
@@ -131,6 +136,11 @@ export const SOURCE_TITLES = {
   ichQ3c: ['Manufacturing and quality', 'ICH Q3C(R8), Impurities: guideline for residual solvents, 2021'],
   ichQ3d: ['Manufacturing and quality', 'ICH Q3D(R2), Guideline for elemental impurities, 2022'],
   uspElemental: ['Manufacturing and quality', 'USP, Elemental impurities updates, general chapters <232> and <233>'],
+  drugsAtFdaFiles: ['Regulation', 'FDA, Drugs@FDA data files'],
+  orangeBookFiles: ['Regulation', 'FDA, Approved Drug Products with Therapeutic Equivalence Evaluations (Orange Book) data files'],
+  emaData: ['Regulation', 'European Medicines Agency, medicine data download'],
+  fdaBiosimilars: ['Regulation', 'FDA, Biosimilar product information'],
+  fdaMilestones: ['History', 'FDA, Milestones in U.S. food and drug law'],
 };
 
 export const GENETIC_SUPPORT = {
@@ -320,6 +330,21 @@ export const ELEMENTS = {
   ],
   unset: ['Al', 'B', 'Ca', 'Fe', 'K', 'Mg', 'Mn', 'Na', 'W', 'Zn'],
 };
+
+const law = (year, name, what) => ({
+  year, name, what, source: 'fdaMilestones',
+});
+
+export const LAWS = [
+  law(1938, 'Food, Drug, and Cosmetic Act', 'new drugs must be shown safe before marketing'),
+  law(1962, 'Kefauver–Harris Amendments', 'new drugs must also be shown effective, in adequate and well-controlled studies'),
+  law(1983, 'Orphan Drug Act', 'incentives, including seven years of exclusivity, for drugs for rare diseases'),
+  law(1984, 'Hatch–Waxman Act', 'abbreviated applications for generics, with patent term restoration'),
+  law(1992, 'Prescription Drug User Fee Act', 'user fees fund review against set review-time goals'),
+  law(1997, 'FDA Modernization Act', 'fast track designation and pediatric exclusivity'),
+  law(2010, 'Biologics Price Competition and Innovation Act', 'an abbreviated pathway for biosimilars'),
+  law(2012, 'FDA Safety and Innovation Act', 'breakthrough therapy designation'),
+];
 
 export const LANDMARKS = [
   { id: 'CHEMBL70', year: 1805, note: 'Morphine, isolated from opium by Friedrich Sertürner, the first alkaloid purified from a plant' },
