@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { chromium, devices } from 'playwright';
 import { start } from '../../scripts/serve.mjs';
 import snapshot from '../../src/snapshot.js';
-import { EXAMPLES, LANDMARKS, GENETIC_SUPPORT } from '../../src/facts.js';
+import {
+  EXAMPLES, LANDMARKS, GENETIC_SUPPORT, ATTRITION,
+} from '../../src/facts.js';
 import { exact } from '../../src/lib.js';
 import {
   findings, propertyByDecade, ringCounts, stemCounts, typeGroups, atcGroups,
@@ -51,6 +53,7 @@ const CHAPTERS = {
   targets: ['classes', 'actions', 'drugged', 'network', 'gtopdb', 'orphans', 'enzymes', 'genetics', 'kinome', 'structures'],
   bioactivity: ['record', 'potency', 'efficiency', 'agreement', 'kinetics', 'theory', 'combinations'],
   pharmacokinetics: ['pk', 'simulator', 'ddi', 'cipa'],
+  trials: ['registry', 'design', 'reporting', 'attrition', 'psychedelics'],
   reference: ['decoder', 'sources'],
 };
 
@@ -365,6 +368,45 @@ test('CiPA charts cross drugs with ion currents and rank hERG margins', async ()
   const currents = Object.keys(snapshot.cipa.rows[0].margin).length;
   assert.equal(await page.locator('#cipa-chart [data-cell]').count(), n * currents);
   assert.equal(await page.locator('#herg-chart [data-row]').count(), n);
+  await page.close();
+});
+
+test('the registry stacks drug trials by phase each year and ranks every study status', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#registry-chart path.area').count(), 5);
+  assert.equal(await page.locator('#status-chart [data-row]').count(), snapshot.trials.fields.OverallStatus.values.length);
+  await page.close();
+});
+
+test('design grids cross the eight phase groups with design features and enrollment bands', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#design-chart [data-cell]').count(), 8 * 10);
+  assert.equal(await page.locator('#enrollment-chart [data-cell]').count(), 8 * 6);
+  await page.close();
+});
+
+test('the reporting chart draws a submission curve for each sponsor group and marks the one-year deadline', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#reporting-chart path.line').count(), snapshot.reporting.groups.length);
+  assert.equal(await page.locator('#reporting-chart .mark-line').count(), 1);
+  assert.match(await page.textContent('#reporting-dek'), /year after primary completion/);
+  await page.close();
+});
+
+test('attrition charts are marked fixed and plot success rates with intervals and the published estimates', async () => {
+  const { page } = await open();
+  assert.equal(await page.locator('#attrition-chart [data-row]').count(), ATTRITION.groups.length + 2);
+  assert.equal(await page.locator('#transitions-chart [data-cell]').count(), (ATTRITION.groups.length + 2) * 4);
+  assert.equal(await page.locator('#estimates-chart [data-row]').count(), ATTRITION.estimates.length);
+  assert.match(await page.textContent('#attrition figcaption'), /Fixed table/);
+  await page.close();
+});
+
+test('psychedelic and cannabinoid charts draw one line per compound', async () => {
+  const { page } = await open();
+  const group = (g) => snapshot.psychoactive.compounds.filter((c) => c.group === g).length;
+  assert.equal(await page.locator('#psychedelics-chart path.line').count(), group('psychedelics'));
+  assert.equal(await page.locator('#cannabinoids-chart path.line').count(), group('cannabinoids'));
   await page.close();
 });
 
