@@ -3,7 +3,20 @@ import assert from 'node:assert/strict';
 import {
   FILES, USER_AGENT, CHEMBL, RCSB_YEARS, ACTIVITY_AGGS, DOCUMENTS, PK_PARAMETERS, pkQuery,
   CTGOV, DRUG_TRIALS, PHASE_GROUPS, TRIAL_FEATURES, ENROLLMENT_BINS, REPORTING, PSYCHOACTIVE, PSYCHOACTIVE_FIELDS, ctCount, ctPage, postedIn, postedBefore, enrolled,
+  OPENFDA, openfdaPage,
 } from '../../src/queries.js';
+
+test('the manufacturing queries page through openFDA recalls and shortages and read FDA’s nitrosamine and inactive ingredient pages', () => {
+  assert.equal(OPENFDA, 'https://api.fda.gov/');
+  assert.equal(FILES.fdaEnforcement, 'https://api.fda.gov/drug/enforcement.json');
+  assert.equal(FILES.fdaShortages, 'https://api.fda.gov/drug/shortages.json');
+  const page = new URL(openfdaPage(FILES.fdaEnforcement, 3000));
+  assert.equal(page.searchParams.get('limit'), '1000');
+  assert.equal(page.searchParams.get('skip'), '3000');
+  assert.equal(new URL(openfdaPage(FILES.fdaShortages, 0, 100)).searchParams.get('limit'), '100');
+  assert.match(FILES.nitrosamineLimits, /^https:\/\/www\.fda\.gov\/regulatory-information\/search-fda-guidance-documents\/cder-nitrosamine-impurity-acceptable-intake-limits$/);
+  assert.match(FILES.iidPage, /^https:\/\/www\.fda\.gov\/drugs\/drug-approvals-and-databases\/inactive-ingredients-database-download$/);
+});
 
 test('the trials queries count ClinicalTrials.gov drug trials by phase, design and year', () => {
   assert.equal(CTGOV, 'https://clinicaltrials.gov/api/v2/');
